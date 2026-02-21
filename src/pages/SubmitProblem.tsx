@@ -327,6 +327,8 @@ const SubmitProblem = () => {
             email: data.email,
             phone: data.phone,
             company_website: data.companyWebsite || undefined,
+            source_of_info: data.sourceOfInfo || undefined,
+            source_of_info_detail: data.sourceOfInfoDetail || undefined,
             problem_title: problem.problemTitle,
             problem_description: problem.problemDescription,
             domain: problem.domain,
