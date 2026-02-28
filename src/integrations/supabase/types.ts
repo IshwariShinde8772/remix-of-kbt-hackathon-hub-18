@@ -83,6 +83,111 @@ export type Database = {
         }
         Relationships: []
       }
+      registered_teams: {
+        Row: {
+          approach_description: string | null
+          city: string | null
+          college_name: string
+          id: string
+          institute_number: string
+          leader_email: string
+          leader_name: string
+          leader_phone: string
+          member2_email: string | null
+          member2_name: string | null
+          member2_role: string | null
+          member3_email: string | null
+          member3_name: string | null
+          member3_role: string | null
+          member4_email: string | null
+          member4_name: string | null
+          member4_role: string | null
+          mentor_contact: string
+          mentor_email: string
+          mentor_name: string
+          registered_at: string
+          selected_domain: string | null
+          selected_problem_id: string | null
+          state: string | null
+          team_id: string
+          team_name: string
+          updated_at: string
+        }
+        Insert: {
+          approach_description?: string | null
+          city?: string | null
+          college_name: string
+          id?: string
+          institute_number: string
+          leader_email: string
+          leader_name: string
+          leader_phone: string
+          member2_email?: string | null
+          member2_name?: string | null
+          member2_role?: string | null
+          member3_email?: string | null
+          member3_name?: string | null
+          member3_role?: string | null
+          member4_email?: string | null
+          member4_name?: string | null
+          member4_role?: string | null
+          mentor_contact: string
+          mentor_email: string
+          mentor_name: string
+          registered_at?: string
+          selected_domain?: string | null
+          selected_problem_id?: string | null
+          state?: string | null
+          team_id: string
+          team_name: string
+          updated_at?: string
+        }
+        Update: {
+          approach_description?: string | null
+          city?: string | null
+          college_name?: string
+          id?: string
+          institute_number?: string
+          leader_email?: string
+          leader_name?: string
+          leader_phone?: string
+          member2_email?: string | null
+          member2_name?: string | null
+          member2_role?: string | null
+          member3_email?: string | null
+          member3_name?: string | null
+          member3_role?: string | null
+          member4_email?: string | null
+          member4_name?: string | null
+          member4_role?: string | null
+          mentor_contact?: string
+          mentor_email?: string
+          mentor_name?: string
+          registered_at?: string
+          selected_domain?: string | null
+          selected_problem_id?: string | null
+          state?: string | null
+          team_id?: string
+          team_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registered_teams_selected_problem_id_fkey"
+            columns: ["selected_problem_id"]
+            isOneToOne: false
+            referencedRelation: "problem_statements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registered_teams_selected_problem_id_fkey"
+            columns: ["selected_problem_id"]
+            isOneToOne: false
+            referencedRelation: "public_problem_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sponsorships: {
         Row: {
           additional_notes: string | null
@@ -133,6 +238,61 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      submissions: {
+        Row: {
+          description: string | null
+          id: string
+          problem_id: string | null
+          solution_pdf_url: string
+          status: string
+          submitted_at: string
+          team_id: string
+          youtube_link: string
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          problem_id?: string | null
+          solution_pdf_url: string
+          status?: string
+          submitted_at?: string
+          team_id: string
+          youtube_link: string
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          problem_id?: string | null
+          solution_pdf_url?: string
+          status?: string
+          submitted_at?: string
+          team_id?: string
+          youtube_link?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_problem_id_fkey"
+            columns: ["problem_id"]
+            isOneToOne: false
+            referencedRelation: "problem_statements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_problem_id_fkey"
+            columns: ["problem_id"]
+            isOneToOne: false
+            referencedRelation: "public_problem_statements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "registered_teams"
+            referencedColumns: ["team_id"]
+          },
+        ]
       }
     }
     Views: {
