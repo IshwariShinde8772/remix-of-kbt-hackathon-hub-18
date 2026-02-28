@@ -13,6 +13,7 @@ const Navbar = () => {
     { name: "Why Participate", path: "/#why-participate" },
     { name: "Process", path: "/#process" },
     { name: "Sponsorship", path: "/#sponsorship" },
+    { name: "Problem Statements", path: "/problems" },
     { name: "Rules", path: "/rules" },
     { name: "Contact Us", path: "/contact" },
   ];
@@ -109,9 +110,14 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
+            <Link to="/register">
+              <Button variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 px-4 py-2 rounded-lg font-semibold">
+                Register Team
+              </Button>
+            </Link>
             <Link to="/submit">
               <Button className="gradient-cta text-primary-foreground px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                Submit Problem Statement
+                Submit Problem
               </Button>
             </Link>
           </div>
@@ -132,9 +138,14 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
+            <Link to="/register" onClick={() => setIsOpen(false)}>
+              <Button variant="outline" className="w-full border-primary-foreground/30 text-primary-foreground mb-2">
+                Register Team
+              </Button>
+            </Link>
             <Link to="/submit" onClick={() => setIsOpen(false)}>
               <Button className="w-full gradient-cta text-primary-foreground">
-                Submit Problem Statement
+                Submit Problem
               </Button>
             </Link>
           </div>
