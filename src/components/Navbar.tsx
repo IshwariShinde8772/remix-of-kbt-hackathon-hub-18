@@ -111,13 +111,13 @@ const Navbar = () => {
               </Link>
             ))}
             <Link to="/register">
-              <Button variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 px-4 py-2 rounded-lg font-semibold">
+              <Button className="gradient-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
                 Register Team
               </Button>
             </Link>
-            <Link to="/submit">
+            <Link to="/submit-solution">
               <Button className="gradient-cta text-primary-foreground px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                Submit Problem
+                Submit Solution
               </Button>
             </Link>
           </div>
@@ -139,13 +139,13 @@ const Navbar = () => {
               </Link>
             ))}
             <Link to="/register" onClick={() => setIsOpen(false)}>
-              <Button variant="outline" className="w-full border-primary-foreground/30 text-primary-foreground mb-2">
+              <Button className="w-full gradient-primary text-primary-foreground mb-2">
                 Register Team
               </Button>
             </Link>
-            <Link to="/submit" onClick={() => setIsOpen(false)}>
+            <Link to="/submit-solution" onClick={() => setIsOpen(false)}>
               <Button className="w-full gradient-cta text-primary-foreground">
-                Submit Problem
+                Submit Solution
               </Button>
             </Link>
           </div>

@@ -14,16 +14,32 @@ serve(async (req) => {
   try {
     const data = await req.json();
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // Use the Supabase URL from the request headers (set by Supabase gateway)
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-    const externalSupabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
-    const externalSupabaseKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
-    const externalSupabase = externalSupabaseUrl && externalSupabaseKey
-      ? createClient(externalSupabaseUrl, externalSupabaseKey)
-      : null;
+    console.log("SUPABASE_URL value:", supabaseUrl);
+    console.log("SUPABASE_SERVICE_ROLE_KEY set:", supabaseKey ? "yes" : "no");
+
+    if (!supabaseUrl || !supabaseKey) {
+      return new Response(JSON.stringify({ error: "Server configuration error: missing database credentials" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const externalSupabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL") ?? "";
+    const externalSupabaseKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    let externalSupabase = null;
+    try {
+      if (externalSupabaseUrl && externalSupabaseKey && externalSupabaseUrl.startsWith("http")) {
+        externalSupabase = createClient(externalSupabaseUrl, externalSupabaseKey);
+      }
+    } catch (e) {
+      console.error("Failed to create external supabase client:", e);
+    }
 
     // Build insert data
     const insertData: Record<string, unknown> = {
