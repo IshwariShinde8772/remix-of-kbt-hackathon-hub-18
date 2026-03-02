@@ -82,47 +82,50 @@ serve(async (req) => {
       });
     }
 
-    console.log(`✅ PRIMARY DB saved: ${result.team_id} - ${result.team_name}`);
+    const teamInfo = result as any;
+    console.log(`✅ PRIMARY DB saved: ${teamInfo.team_id} - ${teamInfo.team_name}`);
 
     // ─────────────────────────────────────────────────────────────
     // EMAIL NOTIFICATION (Resend)
     // ─────────────────────────────────────────────────────────────
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
-      console.error("❌ Email notification failed: RESEND_API_KEY not set");
+      console.warn("⚠️ Email notification skipped: RESEND_API_KEY not set");
     } else {
       try {
-        const membersList = members.map((m: any, i: number) =>
-          `<li><strong>Member ${i + 2}:</strong> ${m.name} (${m.email})</li>`
-        ).join('');
+        const membersList = Array.isArray(members)
+          ? members.map((m: any, i: number) =>
+            `<li><strong>Member ${i + 2}:</strong> ${m.name || 'N/A'} (${m.email || 'N/A'})</li>`
+          ).join('')
+          : '';
 
         const emailHtml = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
             <div style="background-color: #6366f1; color: white; padding: 24px; text-align: center;">
               <h1 style="margin: 0; font-size: 24px;">Registration Successful! 🎉</h1>
-              <p style="margin: 8px 0 0; opacity: 0.9;">Team ${data.team_name}</p>
+              <p style="margin: 8px 0 0; opacity: 0.9;">Team ${data.team_name || 'Your Team'}</p>
             </div>
             <div style="padding: 24px; color: #1e293b; line-height: 1.6;">
-              <p>Hello <strong>${data.leader_name}</strong>,</p>
+              <p>Hello <strong>${data.leader_name || 'Team Leader'}</strong>,</p>
               <p>Congratulations! Your team has been successfully registered for the <strong>KBT Hackathon</strong>.</p>
               
               <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin: 20px 0;">
                 <p style="margin: 0 0 8px; font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Your Team ID</p>
-                <p style="margin: 0; font-size: 32px; font-weight: bold; color: #6366f1; letter-spacing: 2px;">${result.team_id}</p>
+                <p style="margin: 0; font-size: 32px; font-weight: bold; color: #6366f1; letter-spacing: 2px;">${teamInfo.team_id}</p>
                 <p style="margin: 8px 0 0; font-size: 12px; color: #94a3b8;">Use this ID to submit your solutions and track your progress.</p>
               </div>
 
               <h3>Registration Details:</h3>
               <ul style="list-style: none; padding: 0;">
-                <li style="margin-bottom: 8px;"><strong>Domain:</strong> ${data.selected_domain}</li>
-                <li style="margin-bottom: 8px;"><strong>Problem Title:</strong> ${data.problem_statement_title || (result.team_name + " Selected Problem")}</li>
-                <li style="margin-bottom: 8px;"><strong>College:</strong> ${data.college_name}</li>
-                <li style="margin-bottom: 8px;"><strong>Mentor:</strong> ${data.mentor_name} (${data.mentor_email})</li>
+                <li style="margin-bottom: 8px;"><strong>Domain:</strong> ${data.selected_domain || 'N/A'}</li>
+                <li style="margin-bottom: 8px;"><strong>Problem Title:</strong> ${data.problem_statement_title || (teamInfo.team_name + " Selected Problem")}</li>
+                <li style="margin-bottom: 8px;"><strong>College:</strong> ${data.college_name || 'N/A'}</li>
+                <li style="margin-bottom: 8px;"><strong>Mentor:</strong> ${data.mentor_name || 'N/A'} (${data.mentor_email || ''})</li>
               </ul>
 
               <h3>Team Composition:</h3>
               <ul style="list-style: none; padding: 0;">
-                <li style="margin-bottom: 8px;"><strong>Leader:</strong> ${data.leader_name} (${data.leader_email})</li>
+                <li style="margin-bottom: 8px;"><strong>Leader:</strong> ${data.leader_name || 'N/A'} (${data.leader_email || ''})</li>
                 ${membersList}
               </ul>
 
@@ -135,23 +138,23 @@ serve(async (req) => {
           </div>
         `;
 
-        const res = await fetch("https://api.resend.com/emails", {
+        const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${resendKey}`,
           },
           body: JSON.stringify({
-            from: "KBT Hackathon <onboarding@resend.dev>", // Default Resend domain until verified
+            from: "KBT Hackathon <onboarding@resend.dev>",
             to: [data.leader_email],
             reply_to: "kbt.hackathon@kbtcoe.org",
-            subject: `Registration Successful - Team ${data.team_name} [${result.team_id}]`,
+            subject: `Registration Successful - Team ${data.team_name || ''} [${teamInfo.team_id}]`,
             html: emailHtml,
           }),
         });
 
-        const emailResult = await res.json();
-        if (res.ok) {
+        const emailResult = await emailRes.json();
+        if (emailRes.ok) {
           console.log(`✅ Confirmation email sent to ${data.leader_email}: ${emailResult.id}`);
         } else {
           console.error("❌ Email sending failed:", emailResult);
