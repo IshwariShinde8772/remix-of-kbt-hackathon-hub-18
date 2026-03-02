@@ -14,7 +14,6 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -32,6 +31,10 @@ interface ProblemStatement {
   problem_title: string;
   problem_description: string;
   domain: string;
+  expected_outcome: string | null;
+  targeted_audience: string | null;
+  resources_provided: string | null;
+  resource_file_url: string | null;
 }
 
 interface TeamMember {
@@ -72,7 +75,6 @@ const RegisterTeam = () => {
   // Step 3: Problem Selection
   const [selectedDomain, setSelectedDomain] = useState("");
   const [selectedProblemId, setSelectedProblemId] = useState("");
-  const [approachDescription, setApproachDescription] = useState("");
 
   // Step 4: Mentor & Attachment
   const [mentorName, setMentorName] = useState("");
@@ -85,7 +87,7 @@ const RegisterTeam = () => {
     const fetchProblems = async () => {
       const { data } = await supabase
         .from("problem_statements")
-        .select("id, company_name, problem_title, problem_description, domain")
+        .select("*")
         .eq("status", "approved")
         .order("domain")
         .order("created_at");
@@ -147,7 +149,6 @@ const RegisterTeam = () => {
     if (step === 3) {
       if (!selectedDomain) { toast.error("Please select a domain"); return false; }
       if (!selectedProblemId) { toast.error("Please select a problem statement"); return false; }
-      if (!approachDescription.trim()) { toast.error("Please describe your approach"); return false; }
       return true;
     }
     if (step === 4) {
@@ -236,7 +237,7 @@ const RegisterTeam = () => {
           members,
           selected_problem_id: selectedProblemId,
           selected_domain: selectedDomain,
-          approach_description: approachDescription,
+          approach_description: selectedProblem?.problem_description || "",
           mentor_name: mentorName,
           mentor_email: mentorEmail,
           mentor_contact: mentorContact,
@@ -483,15 +484,40 @@ const RegisterTeam = () => {
                       </div>
                     )}
 
-                    <div className="space-y-2">
-                      <Label>Your Approach / Description *</Label>
-                      <Textarea
-                        placeholder="Briefly describe your team's approach to solve this problem..."
-                        value={approachDescription}
-                        onChange={(e) => setApproachDescription(e.target.value)}
-                        rows={4}
-                      />
-                    </div>
+                    {selectedProblem && (
+                      <div className="mt-6 p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2 text-primary">
+                          <FileText className="w-5 h-5" />
+                          <h3 className="font-bold uppercase tracking-wider text-sm">Selected Problem Details</h3>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-tight">Title</p>
+                            <p className="text-sm font-bold text-foreground">{selectedProblem.problem_title}</p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-tight">Detailed Description</p>
+                            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{selectedProblem.problem_description}</p>
+                          </div>
+
+                          {selectedProblem.expected_outcome && (
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-tight">Expected Outcome</p>
+                              <p className="text-sm text-foreground">{selectedProblem.expected_outcome}</p>
+                            </div>
+                          )}
+
+                          {selectedProblem.targeted_audience && (
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-tight">Targeted Audience</p>
+                              <p className="text-sm text-foreground">{selectedProblem.targeted_audience}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
 
