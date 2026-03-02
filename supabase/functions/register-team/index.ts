@@ -85,6 +85,7 @@ serve(async (req) => {
     const teamInfo = result as any;
     console.log(`✅ PRIMARY DB saved: ${teamInfo.team_id} - ${teamInfo.team_name}`);
 
+    /* 
     // ─────────────────────────────────────────────────────────────
     // EMAIL NOTIFICATION (Resend)
     // ─────────────────────────────────────────────────────────────
@@ -163,6 +164,7 @@ serve(async (req) => {
         console.error("❌ Email sending error:", emailErr);
       }
     }
+    */
 
     // ─────────────────────────────────────────────────────────────
     // EXTERNAL SUPABASE (lxawemydhhmqjahttrlb) — table: team_registrations
