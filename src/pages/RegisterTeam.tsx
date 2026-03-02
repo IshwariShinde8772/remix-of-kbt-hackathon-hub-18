@@ -12,8 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft, ArrowRight, CheckCircle2, Shield, Users, FileText, GraduationCap,
-  Plus, Trash2, Mail, Phone, Hash, Building2, User
+  Plus, Trash2, Mail, Phone, Hash, Building2, User, Copy
 } from "lucide-react";
 
 interface ProblemStatement {
@@ -47,7 +50,7 @@ const RegisterTeam = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [problems, setProblems] = useState<ProblemStatement[]>([]);
-
+  const [successData, setSuccessData] = useState<{ teamId: string; email: string } | null>(null);
   // Step 1: Team Info
   const [teamName, setTeamName] = useState("");
   const [collegeName, setCollegeName] = useState("");
@@ -189,11 +192,7 @@ const RegisterTeam = () => {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Registration failed");
 
-      toast.success("Registration successful!", {
-        description: `Your Team ID is ${result.team_id}. A confirmation email has been sent to ${leaderEmail}.`,
-        duration: 10000,
-      });
-      navigate("/problems");
+      setSuccessData({ teamId: result.team_id, email: leaderEmail });
     } catch (error: any) {
       toast.error("Registration failed", { description: error.message });
     } finally {
@@ -489,6 +488,50 @@ const RegisterTeam = () => {
           </div>
         </div>
       </main>
+
+      {/* Success Dialog */}
+      <Dialog open={!!successData} onOpenChange={(open) => { if (!open) { setSuccessData(null); navigate("/"); } }}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mx-auto mb-2">
+              <CheckCircle2 className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <DialogTitle className="text-2xl font-heading">Registration Successful! 🎉</DialogTitle>
+            <DialogDescription className="text-base mt-2">
+              Your team has been registered. Use the Team ID below to submit your solution.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="my-4 p-4 bg-muted rounded-xl border border-border">
+            <p className="text-sm text-muted-foreground mb-1">Your Team ID</p>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-3xl font-heading font-bold text-primary tracking-wider">
+                {successData?.teamId}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(successData?.teamId || "");
+                  toast.success("Team ID copied!");
+                }}
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              A confirmation has been sent to <span className="font-semibold">{successData?.email}</span>
+            </p>
+          </div>
+
+          <DialogFooter className="sm:justify-center">
+            <Button className="gradient-primary text-primary-foreground px-8" onClick={() => { setSuccessData(null); navigate("/"); }}>
+              Go to Home
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );
