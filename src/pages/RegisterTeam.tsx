@@ -1,13 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { createClient } from "@supabase/supabase-js";
-
-// External Supabase client (your own DB: lxawemydhhmqjahttrlb)
-const externalSupabase = createClient(
-  import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-  import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY
-);
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -181,7 +174,6 @@ const RegisterTeam = () => {
 
     try {
       let primaryFormUrl = regFormUrl;
-      let externalFormUrl = regFormUrl;
 
       // Enable dual upload to storage
       if (regFormFile) {
@@ -203,26 +195,6 @@ const RegisterTeam = () => {
           .from('registration-forms')
           .getPublicUrl(filePath);
         primaryFormUrl = primaryPublicUrl;
-
-        // 2. Upload to EXTERNAL Supabase
-        try {
-          const { error: externalUploadError } = await externalSupabase.storage
-            .from('registration-forms')
-            .upload(filePath, regFormFile);
-
-          if (externalUploadError) {
-            console.error("External upload error:", externalUploadError);
-            // Non-blocking: registration continues if external upload fails but primary succeeds
-          } else {
-            const { data: { publicUrl: externalPublicUrl } } = externalSupabase.storage
-              .from('registration-forms')
-              .getPublicUrl(filePath);
-            externalFormUrl = externalPublicUrl;
-            console.log("✅ External storage synced");
-          }
-        } catch (extStorageErr) {
-          console.error("External storage error (non-blocking):", extStorageErr);
-        }
       }
 
       // 3. Invoke Edge Function (Primary Registration)
@@ -237,8 +209,8 @@ const RegisterTeam = () => {
           members,
           selected_problem_id: selectedProblemId,
           selected_domain: selectedDomain,
+          problem_title: selectedProblem?.problem_title || "",
           approach_description: selectedProblem?.problem_description || "",
-          problem_statement_title: selectedProblem?.problem_title || "",
           mentor_name: mentorName,
           mentor_email: mentorEmail,
           mentor_contact: mentorContact,
@@ -248,34 +220,6 @@ const RegisterTeam = () => {
 
       if (error) throw new Error(error.message || "Registration failed");
       if (result?.error) throw new Error(result.error);
-
-      // 4. Sync to External Database
-      externalSupabase
-        .from("team_registrations")
-        .insert({
-          registration_id: result.team_id,
-          team_name: teamName,
-          college_name: collegeName,
-          institute_number: instituteNumber,
-          leader_name: leaderName,
-          leader_email: leaderEmail,
-          leader_contact: leaderPhone,
-          members: members.map((m) => ({ name: m.name, email: m.email, contact: m.contact })),
-          domain: selectedDomain || "N/A",
-          problem_statement_id: selectedProblem?.id || "N/A",
-          problem_statement_uuid: selectedProblem?.id || null,
-          problem_statement_title: selectedProblem?.problem_title || "N/A",
-          problem_description: selectedProblem?.problem_description || "N/A",
-          mentor_name: mentorName,
-          mentor_email: mentorEmail,
-          mentor_contact: mentorContact,
-          registration_form_url: externalFormUrl || primaryFormUrl || regFormUrl, // Prioritize external link for external DB
-          status: "registered",
-        })
-        .then(({ error: extErr }) => {
-          if (extErr) console.error("External DB sync error:", extErr.message);
-          else console.log("✅ External DB synced:", result.team_id);
-        });
 
       setSuccessData({ teamId: result.team_id, email: leaderEmail });
     } catch (error: any) {

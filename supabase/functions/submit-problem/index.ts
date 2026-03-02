@@ -1,3 +1,4 @@
+/// <reference types="deno" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
@@ -30,7 +31,7 @@ serve(async (req) => {
     if (limit && limit.resetAt > now && limit.count >= RATE_LIMIT_MAX) {
       return new Response(JSON.stringify({ error: "Too many submissions" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (limit && limit.resetAt > now) { limit.count++; } 
+    if (limit && limit.resetAt > now) { limit.count++; }
     else { rateLimits.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS }); }
 
     const data = await req.json();
@@ -40,11 +41,11 @@ serve(async (req) => {
 
     // Primary Lovable Cloud database
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    
+
     // External Supabase database (optional - will save to both if configured)
     const externalSupabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
     const externalSupabaseKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
-    const externalSupabase = externalSupabaseUrl && externalSupabaseKey 
+    const externalSupabase = externalSupabaseUrl && externalSupabaseKey
       ? createClient(externalSupabaseUrl, externalSupabaseKey)
       : null;
 
@@ -52,22 +53,22 @@ serve(async (req) => {
     let paymentProofUrl: string | null = null;
     let fileData: Uint8Array | null = null;
     let fileName: string | null = null;
-    
+
     if (data.payment_proof_base64 && data.payment_proof_filename && data.payment_proof_type) {
       // Validate file type
       if (!ALLOWED_MIME_TYPES.includes(data.payment_proof_type)) {
-        return new Response(JSON.stringify({ error: "Invalid file type. Allowed: JPG, PNG, WebP, PDF" }), { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        return new Response(JSON.stringify({ error: "Invalid file type. Allowed: JPG, PNG, WebP, PDF" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
       // Decode base64 and validate size
       fileData = decode(data.payment_proof_base64);
       if (fileData.length > MAX_FILE_SIZE) {
-        return new Response(JSON.stringify({ error: "File too large. Maximum size is 5MB" }), { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        return new Response(JSON.stringify({ error: "File too large. Maximum size is 5MB" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
@@ -86,9 +87,9 @@ serve(async (req) => {
 
       if (uploadError) {
         console.error("Primary storage upload error:", uploadError);
-        return new Response(JSON.stringify({ error: "Failed to upload payment proof" }), { 
-          status: 500, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        return new Response(JSON.stringify({ error: "Failed to upload payment proof" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
@@ -117,15 +118,15 @@ serve(async (req) => {
     let resourceFileUrl: string | null = null;
     if (data.resource_file_base64 && data.resource_file_filename && data.resource_file_type) {
       if (!RESOURCE_ALLOWED_MIME_TYPES.includes(data.resource_file_type)) {
-        return new Response(JSON.stringify({ error: "Invalid resource file type. Allowed: JPG, PNG, WebP, PDF" }), { 
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        return new Response(JSON.stringify({ error: "Invalid resource file type. Allowed: JPG, PNG, WebP, PDF" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
       const resourceFileData = decode(data.resource_file_base64);
       if (resourceFileData.length > RESOURCE_MAX_FILE_SIZE) {
-        return new Response(JSON.stringify({ error: "Resource file too large. Maximum size is 100MB" }), { 
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        return new Response(JSON.stringify({ error: "Resource file too large. Maximum size is 100MB" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
@@ -142,8 +143,8 @@ serve(async (req) => {
 
       if (resUploadError) {
         console.error("Resource file upload error:", resUploadError);
-        return new Response(JSON.stringify({ error: "Failed to upload resource file" }), { 
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        return new Response(JSON.stringify({ error: "Failed to upload resource file" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
@@ -177,13 +178,13 @@ serve(async (req) => {
         transaction_id: data.transaction_id || null,
         status: "pending",
       };
-      
+
       const { error } = await supabase.from("sponsorships").insert(insertData);
       if (error) {
         console.error("Database insert error:", error);
         return new Response(JSON.stringify({ error: "Failed to submit" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      
+
       // Also save to external Supabase if configured
       if (externalSupabase) {
         const { error: extError } = await externalSupabase.from("sponsorships").insert(insertData);
@@ -194,7 +195,7 @@ serve(async (req) => {
           console.log("Sponsorship also saved to external database");
         }
       }
-      
+
       console.log("Sponsorship saved to database successfully");
       return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -218,13 +219,13 @@ serve(async (req) => {
       transaction_id: data.transaction_id || null,
       status: "pending",
     };
-    
+
     const { error } = await supabase.from("problem_statements").insert(insertData);
     if (error) {
       console.error("Database insert error:", error);
       return new Response(JSON.stringify({ error: "Failed to submit" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    
+
     // Also save to external Supabase if configured
     if (externalSupabase) {
       const { error: extError } = await externalSupabase.from("problem_statements").insert(insertData);
@@ -235,7 +236,7 @@ serve(async (req) => {
         console.log("Problem statement also saved to external database");
       }
     }
-    
+
     console.log("Problem statement saved to database successfully");
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
