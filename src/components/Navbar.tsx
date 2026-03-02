@@ -14,6 +14,7 @@ const Navbar = () => {
     { name: "Process", path: "/#process" },
     { name: "Sponsorship", path: "/#sponsorship" },
     { name: "Problem Statements", path: "/problems" },
+    { name: "Resources", path: "/resources" },
     { name: "Rules", path: "/rules" },
     { name: "Contact Us", path: "/contact" },
   ];
@@ -33,7 +34,7 @@ const Navbar = () => {
     const elementPosition = element.getBoundingClientRect().top + window.scrollY;
     // Position element so user can see there's more content below (show ~70% of viewport)
     const offsetPosition = elementPosition - navbarHeight - (viewportHeight * 0.15);
-    
+
     window.scrollTo({
       top: offsetPosition,
       behavior: "smooth"
@@ -56,7 +57,7 @@ const Navbar = () => {
 
   const handleNavClick = (path: string, e: React.MouseEvent) => {
     setIsOpen(false);
-    
+
     // Handle Home link - scroll to top
     if (path === "/") {
       e.preventDefault();
@@ -67,7 +68,7 @@ const Navbar = () => {
       navigate("/", { replace: true });
       return;
     }
-    
+
     if (path.includes("#")) {
       const id = path.split("#")[1];
       // If we're on the home page, prevent default and scroll
@@ -103,9 +104,8 @@ const Navbar = () => {
                 key={item.name}
                 to={item.path}
                 onClick={(e) => handleNavClick(item.path, e)}
-                className={`nav-link ${
-                  isActive(item.path) ? "nav-link-active" : ""
-                }`}
+                className={`nav-link ${isActive(item.path) ? "nav-link-active" : ""
+                  }`}
               >
                 {item.name}
               </Link>
@@ -131,9 +131,8 @@ const Navbar = () => {
                 key={item.name}
                 to={item.path}
                 onClick={(e) => handleNavClick(item.path, e)}
-                className={`block nav-link ${
-                  isActive(item.path) ? "nav-link-active" : ""
-                }`}
+                className={`block nav-link ${isActive(item.path) ? "nav-link-active" : ""
+                  }`}
               >
                 {item.name}
               </Link>

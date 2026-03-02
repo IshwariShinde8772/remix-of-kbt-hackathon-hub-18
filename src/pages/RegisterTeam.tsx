@@ -1,6 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
+
+// External Supabase client (your own DB: lxawemydhhmqjahttrlb)
+const externalSupabase = createClient(
+  import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
+  import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY
+);
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -30,7 +37,7 @@ interface ProblemStatement {
 interface TeamMember {
   name: string;
   email: string;
-  role: string;
+  contact: string;
 }
 
 const DOMAIN_PREFIXES: Record<string, string> = {
@@ -67,10 +74,12 @@ const RegisterTeam = () => {
   const [selectedProblemId, setSelectedProblemId] = useState("");
   const [approachDescription, setApproachDescription] = useState("");
 
-  // Step 4: Mentor
+  // Step 4: Mentor & Attachment
   const [mentorName, setMentorName] = useState("");
   const [mentorEmail, setMentorEmail] = useState("");
   const [mentorContact, setMentorContact] = useState("");
+  const [regFormFile, setRegFormFile] = useState<File | null>(null);
+  const [regFormUrl, setRegFormUrl] = useState("");
 
   useEffect(() => {
     const fetchProblems = async () => {
@@ -103,7 +112,7 @@ const RegisterTeam = () => {
 
   const addMember = () => {
     if (members.length < 4) {
-      setMembers([...members, { name: "", email: "", role: "" }]);
+      setMembers([...members, { name: "", email: "", contact: "" }]);
     }
   };
 
@@ -131,6 +140,7 @@ const RegisterTeam = () => {
       for (let i = 0; i < members.length; i++) {
         if (!members[i].name.trim()) { toast.error(`Member ${i + 1} name is required`); return false; }
         if (!members[i].email.trim() || !/\S+@\S+\.\S+/.test(members[i].email)) { toast.error(`Valid email required for member ${i + 1}`); return false; }
+        if (!members[i].contact.trim() || members[i].contact.length < 10) { toast.error(`Valid contact required for member ${i + 1}`); return false; }
       }
       return true;
     }
@@ -144,6 +154,7 @@ const RegisterTeam = () => {
       if (!mentorName.trim()) { toast.error("Mentor name is required"); return false; }
       if (!mentorEmail.trim() || !/\S+@\S+\.\S+/.test(mentorEmail)) { toast.error("Valid mentor email is required"); return false; }
       if (!mentorContact.trim() || mentorContact.length < 10) { toast.error("Valid mentor contact is required"); return false; }
+      if (!regFormFile && !regFormUrl) { toast.error("Please upload the registration form"); return false; }
       return true;
     }
     return true;
@@ -168,11 +179,54 @@ const RegisterTeam = () => {
     setIsSubmitting(true);
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/register-team`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let primaryFormUrl = regFormUrl;
+      let externalFormUrl = regFormUrl;
+
+      // Enable dual upload to storage
+      if (regFormFile) {
+        const fileExt = regFormFile.name.split('.').pop();
+        const fileName = `${teamName.replace(/\s+/g, '_')}_${Date.now()}.${fileExt}`;
+        const filePath = fileName;
+
+        // 1. Upload to PRIMARY Supabase
+        const { error: primaryUploadError } = await supabase.storage
+          .from('registration-forms')
+          .upload(filePath, regFormFile);
+
+        if (primaryUploadError) {
+          console.error("Primary upload error:", primaryUploadError);
+          throw new Error("Primary file upload failed: " + primaryUploadError.message);
+        }
+
+        const { data: { publicUrl: primaryPublicUrl } } = supabase.storage
+          .from('registration-forms')
+          .getPublicUrl(filePath);
+        primaryFormUrl = primaryPublicUrl;
+
+        // 2. Upload to EXTERNAL Supabase
+        try {
+          const { error: externalUploadError } = await externalSupabase.storage
+            .from('registration-forms')
+            .upload(filePath, regFormFile);
+
+          if (externalUploadError) {
+            console.error("External upload error:", externalUploadError);
+            // Non-blocking: registration continues if external upload fails but primary succeeds
+          } else {
+            const { data: { publicUrl: externalPublicUrl } } = externalSupabase.storage
+              .from('registration-forms')
+              .getPublicUrl(filePath);
+            externalFormUrl = externalPublicUrl;
+            console.log("✅ External storage synced");
+          }
+        } catch (extStorageErr) {
+          console.error("External storage error (non-blocking):", extStorageErr);
+        }
+      }
+
+      // 3. Invoke Edge Function (Primary Registration)
+      const { data: result, error } = await supabase.functions.invoke("register-team", {
+        body: {
           team_name: teamName,
           college_name: collegeName,
           institute_number: instituteNumber,
@@ -186,11 +240,41 @@ const RegisterTeam = () => {
           mentor_name: mentorName,
           mentor_email: mentorEmail,
           mentor_contact: mentorContact,
-        }),
+          registration_form_url: primaryFormUrl || regFormUrl,
+        },
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Registration failed");
+      if (error) throw new Error(error.message || "Registration failed");
+      if (result?.error) throw new Error(result.error);
+
+      // 4. Sync to External Database
+      const selectedProblem = problems.find((p) => p.id === selectedProblemId);
+      externalSupabase
+        .from("team_registrations")
+        .insert({
+          registration_id: result.team_id,
+          team_name: teamName,
+          college_name: collegeName,
+          institute_number: instituteNumber,
+          leader_name: leaderName,
+          leader_email: leaderEmail,
+          leader_contact: leaderPhone,
+          members: members.map((m) => ({ name: m.name, email: m.email, contact: m.contact })),
+          domain: selectedDomain || "N/A",
+          problem_statement_id: selectedProblem?.id || "N/A",
+          problem_statement_uuid: selectedProblem?.id || null,
+          problem_statement_title: selectedProblem?.problem_title || "N/A",
+          problem_description: selectedProblem?.problem_description || "N/A",
+          mentor_name: mentorName,
+          mentor_email: mentorEmail,
+          mentor_contact: mentorContact,
+          registration_form_url: externalFormUrl || primaryFormUrl || regFormUrl, // Prioritize external link for external DB
+          status: "registered",
+        })
+        .then(({ error: extErr }) => {
+          if (extErr) console.error("External DB sync error:", extErr.message);
+          else console.log("✅ External DB synced:", result.team_id);
+        });
 
       setSuccessData({ teamId: result.team_id, email: leaderEmail });
     } catch (error: any) {
@@ -213,9 +297,8 @@ const RegisterTeam = () => {
                 {steps.map((step, index) => (
                   <div key={step.id} className="flex items-center flex-1">
                     <div className="flex flex-col items-center">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        currentStep >= step.id ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                      }`}>
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${currentStep >= step.id ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                        }`}>
                         {currentStep > step.id ? <CheckCircle2 className="w-6 h-6" /> : <step.icon className="w-6 h-6" />}
                       </div>
                       <span className={`text-xs mt-1 font-medium ${currentStep >= step.id ? "text-foreground" : "text-muted-foreground"}`}>
@@ -341,7 +424,7 @@ const RegisterTeam = () => {
                             <div className="grid md:grid-cols-3 gap-3">
                               <Input placeholder="Full name" value={member.name} onChange={(e) => updateMember(index, "name", e.target.value)} />
                               <Input placeholder="Email" type="email" value={member.email} onChange={(e) => updateMember(index, "email", e.target.value)} />
-                              <Input placeholder="Role (e.g. Developer)" value={member.role} onChange={(e) => updateMember(index, "role", e.target.value)} />
+                              <Input placeholder="Contact Number" value={member.contact} onChange={(e) => updateMember(index, "contact", e.target.value)} />
                             </div>
                           </div>
                         ))}
@@ -384,11 +467,10 @@ const RegisterTeam = () => {
                             key={p.id}
                             type="button"
                             onClick={() => setSelectedProblemId(p.id)}
-                            className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                              selectedProblemId === p.id
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:bg-muted/50"
-                            }`}
+                            className={`w-full text-left p-3 rounded-lg border transition-colors ${selectedProblemId === p.id
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:bg-muted/50"
+                              }`}
                           >
                             <div className="flex items-center gap-2 mb-1">
                               <Badge variant="outline" className="text-xs font-mono">{p.displayId}</Badge>
@@ -441,6 +523,38 @@ const RegisterTeam = () => {
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input className="pl-10" placeholder="10-digit mobile number" value={mentorContact} onChange={(e) => setMentorContact(e.target.value)} />
+                      </div>
+                    </div>
+
+                    {/* Step 4: Attachment */}
+                    <div className="border-t border-border pt-4">
+                      <div className="flex items-center gap-2 mb-4 text-primary font-bold">
+                        <Plus className="w-5 h-5" />
+                        <h3 className="font-semibold uppercase tracking-wider">Team Authorization Form</h3>
+                      </div>
+
+                      <div className="bg-muted p-4 rounded-xl border border-dashed border-primary/30 text-center">
+                        <FileText className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                        <p className="text-sm text-foreground font-semibold mb-2">Upload Signed Team Registration Form</p>
+                        <p className="text-xs text-muted-foreground mb-4">
+                          Download the template from <a href="/resources" target="_blank" className="text-primary hover:underline">Resources</a>, get it signed by your college head, and upload a photo/PDF here.
+                        </p>
+
+                        <div className="flex flex-col items-center gap-3">
+                          <Input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="max-w-xs"
+                            onChange={(e) => setRegFormFile(e.target.files?.[0] || null)}
+                          />
+                          <p className="text-xs text-muted-foreground">OR</p>
+                          <Input
+                            placeholder="Enter Google Drive link or other URL"
+                            className="max-w-xs"
+                            value={regFormUrl}
+                            onChange={(e) => setRegFormUrl(e.target.value)}
+                          />
+                        </div>
                       </div>
                     </div>
 

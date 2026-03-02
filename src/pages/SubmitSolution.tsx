@@ -120,7 +120,7 @@ const SubmitSolution = () => {
 
       if (uploadError) throw new Error("Failed to upload solution file");
 
-      // Insert submission
+      // Insert submission into PRIMARY DB (Lovable) → submissions
       const { error: insertError } = await supabase
         .from("submissions")
         .insert({

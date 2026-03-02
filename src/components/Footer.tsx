@@ -41,6 +41,11 @@ const Footer = () => {
                   Benefits
                 </Link>
               </li>
+              <li>
+                <Link to="/resources" className="text-secondary-foreground/80 hover:text-primary-foreground transition-colors">
+                  Resources
+                </Link>
+              </li>
             </ul>
           </div>
 

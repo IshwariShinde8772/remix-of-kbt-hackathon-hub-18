@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, Filter, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, RefreshCw, Filter, ExternalLink, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
@@ -45,6 +45,41 @@ const DOMAIN_COLORS: Record<string, string> = {
   "Graphics": "bg-teal-100 text-teal-800 border-teal-200",
   "Maintenance": "bg-yellow-100 text-yellow-800 border-yellow-200",
 };
+
+const COMPANY_WEBSITES: Record<string, string> = {
+  "neelay industries ltd.": "https://www.neelaygroup.com/about.php",
+  "aerogravity pvt ltd (nxtqube)": "https://nxtqube.com/",
+};
+
+// Case-insensitive lookup for company websites
+const getCompanyWebsite = (companyName: string): string | undefined =>
+  COMPANY_WEBSITES[companyName.toLowerCase().trim()];
+
+// Resources keyed by company name (for Avani & Samarth)
+const COMPANY_RESOURCES: Record<string, { label: string; file: string }[]> = {
+  "avani engg. pvt. ltd.": [
+    { label: "Avani Engg. Resource File", file: "/resources/avani/avani_resource.jpg" },
+  ],
+  "samarth developers": [
+    { label: "Samarth Developers Resource File", file: "/resources/samarth/Samarth developers.pdf" },
+  ],
+};
+
+// Resources keyed by exact problem title (for problems that share a company but need different files)
+const PROBLEM_TITLE_RESOURCES: Record<string, { label: string; file: string }[]> = {
+  "design and fabrication of set-up for manufacturing of locking pin and washer": [
+    { label: "Design & Fabrication Resource", file: "/resources/pentas/Pentas Insulation (Design).pdf" },
+  ],
+  "temperature distribution of composite wall using cfd": [
+    { label: "Temperature Distribution Resource", file: "/resources/pentas/Pentas Insulation (Temperature).pdf" },
+  ],
+};
+
+// Lookup: problem title takes priority, falls back to company name
+const getProblemResources = (companyName: string, problemTitle: string) =>
+  PROBLEM_TITLE_RESOURCES[problemTitle.toLowerCase().trim()] ??
+  COMPANY_RESOURCES[companyName.toLowerCase().trim()] ??
+  [];
 
 const ITEMS_PER_PAGE = 10;
 
@@ -310,9 +345,62 @@ const ProblemStatements = () => {
                     <tr><td className="py-3 pr-4 font-semibold text-sm">Description</td><td className="py-3 text-sm whitespace-pre-wrap">{selectedWithId.problem_description}</td></tr>
                     {selectedWithId.expected_outcome && <tr><td className="py-3 pr-4 font-semibold text-sm">Expected Outcome</td><td className="py-3 text-sm">{selectedWithId.expected_outcome}</td></tr>}
                     {selectedWithId.targeted_audience && <tr><td className="py-3 pr-4 font-semibold text-sm">Targeted Audience</td><td className="py-3 text-sm">{selectedWithId.targeted_audience}</td></tr>}
-                    <tr><td className="py-3 pr-4 font-semibold text-sm">Organization</td><td className="py-3 text-sm">{selectedWithId.company_name}</td></tr>
+                    <tr>
+                      <td className="py-3 pr-4 font-semibold text-sm">Organization</td>
+                      <td className="py-3 text-sm">
+                        {getCompanyWebsite(selectedWithId.company_name) ? (
+                          <a
+                            href={getCompanyWebsite(selectedWithId.company_name)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline flex items-center gap-1 w-fit font-medium"
+                          >
+                            {selectedWithId.company_name}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          selectedWithId.company_name
+                        )}
+                      </td>
+                    </tr>
                     <tr><td className="py-3 pr-4 font-semibold text-sm">Domain / Category</td><td className="py-3 text-sm">{selectedWithId.domain}</td></tr>
-                    {selectedWithId.resources_provided && <tr><td className="py-3 pr-4 font-semibold text-sm">Resources Provided</td><td className="py-3 text-sm">{selectedWithId.resources_provided}</td></tr>}
+                    {selectedWithId.resources_provided && (
+                      <tr>
+                        <td className="py-3 pr-4 font-semibold text-sm align-top">Resources Provided</td>
+                        <td className="py-3 text-sm">
+                          <p className="mb-2">{selectedWithId.resources_provided}</p>
+                          {getProblemResources(selectedWithId.company_name, selectedWithId.problem_title).map((res) => (
+                            <a
+                              key={res.file}
+                              href={res.file}
+                              download
+                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-primary/40 text-primary text-xs font-medium hover:bg-primary/10 transition-colors mr-2 mb-1"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              {res.label}
+                            </a>
+                          ))}
+                        </td>
+                      </tr>
+                    )}
+                    {!selectedWithId.resources_provided && getProblemResources(selectedWithId.company_name, selectedWithId.problem_title).length > 0 && (
+                      <tr>
+                        <td className="py-3 pr-4 font-semibold text-sm align-top">Resources Provided</td>
+                        <td className="py-3">
+                          {getProblemResources(selectedWithId.company_name, selectedWithId.problem_title).map((res) => (
+                            <a
+                              key={res.file}
+                              href={res.file}
+                              download
+                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-primary/40 text-primary text-xs font-medium hover:bg-primary/10 transition-colors mr-2 mb-1"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              {res.label}
+                            </a>
+                          ))}
+                        </td>
+                      </tr>
+                    )}
                     {selectedWithId.resource_file_url && (
                       <tr>
                         <td className="py-3 pr-4 font-semibold text-sm">Additional Resources</td>

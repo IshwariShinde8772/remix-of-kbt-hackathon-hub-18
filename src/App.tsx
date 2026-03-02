@@ -8,6 +8,7 @@ import SubmitProblem from "./pages/SubmitProblem";
 import ProblemStatements from "./pages/ProblemStatements";
 import RegisterTeam from "./pages/RegisterTeam";
 import SubmitSolution from "./pages/SubmitSolution";
+import Resources from "./pages/Resources";
 import Rules from "./pages/Rules";
 import ContactUs from "./pages/ContactUs";
 import NotFound from "./pages/NotFound";
@@ -25,6 +26,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/problems" element={<ProblemStatements />} />
+          <Route path="/resources" element={<Resources />} />
           <Route path="/register" element={<RegisterTeam />} />
           <Route path="/submit-solution" element={<SubmitSolution />} />
           <Route path="/submit" element={<SubmitProblem />} />
