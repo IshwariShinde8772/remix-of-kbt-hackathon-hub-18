@@ -88,49 +88,52 @@ serve(async (req) => {
     // EXTERNAL SUPABASE (lxawemydhhmqjahttrlb) — table: team_registrations
     // ─────────────────────────────────────────────────────────────
     const externalUrl = "https://lxawemydhhmqjahttrlb.supabase.co";
-    const externalKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4YXdlbXlkaGhtcWphaHR0cmxiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODk3MDcwMywiZXhwIjoyMDg0NTQ2NzAzfQ.8lpW26X2YtAtvvImtcGP7Iw_tcwMPBVTBIygbCBYatM";
+    const externalKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
 
-    try {
-      const externalSupabase = createClient(externalUrl, externalKey);
+    if (!externalKey) {
+      console.error("❌ External DB sync failed: EXTERNAL_SUPABASE_SERVICE_ROLE_KEY not set");
+    } else {
+      try {
+        const externalSupabase = createClient(externalUrl, externalKey);
 
-      // Build members array for external DB (JSON array)
-      const membersArray = members.map((m: any) => ({
-        name: m.name,
-        email: m.email,
-        contact: m.contact || null, // Changed from role
-      }));
+        // Build members array for external DB (JSON array)
+        const membersArray = members.map((m: any) => ({
+          name: m.name,
+          email: m.email,
+          contact: m.contact || null, // Changed from role
+        }));
 
-      // Map to external table's column names
-      const extInsertData = {
-        registration_id: result.team_id,
-        team_name: data.team_name,
-        college_name: data.college_name,
-        institute_number: data.institute_number,
-        leader_name: data.leader_name,
-        leader_email: data.leader_email,
-        leader_contact: data.leader_phone,
-        members: membersArray,
-        domain: data.selected_domain || null,
-        problem_statement_id: data.selected_problem_id || null,
-        mentor_name: data.mentor_name,
-        mentor_email: data.mentor_email,
-        mentor_contact: data.mentor_contact,
-        registration_form_url: data.registration_form_url || null, // New field
-        status: "registered",
-      };
+        // Map to external table's column names
+        const extInsertData = {
+          registration_id: result.team_id,
+          team_name: data.team_name,
+          college_name: data.college_name,
+          institute_number: data.institute_number,
+          leader_name: data.leader_name,
+          leader_email: data.leader_email,
+          leader_contact: data.leader_phone,
+          members: membersArray,
+          domain: data.selected_domain || null,
+          problem_statement_id: data.selected_problem_id || null,
+          mentor_name: data.mentor_name,
+          mentor_email: data.mentor_email,
+          mentor_contact: data.mentor_contact,
+          registration_form_url: data.registration_form_url || null, // New field
+          status: "registered",
+        };
 
-      const { error: extError } = await externalSupabase
-        .from("team_registrations")
-        .insert(extInsertData);
+        const { error: extError } = await externalSupabase
+          .from("team_registrations")
+          .insert(extInsertData);
 
-      if (extError) {
-        console.error("❌ External DB error:", extError.message);
-      } else {
-        console.log(`✅ EXTERNAL DB saved: ${result.team_id}`);
+        if (extError) {
+          console.error("❌ External DB error:", extError.message);
+        } else {
+          console.log(`✅ EXTERNAL DB saved: ${result.team_id}`);
+        }
+      } catch (extErr) {
+        console.error("❌ External DB sync failed (non-blocking):", extErr);
       }
-    } catch (extErr) {
-      console.error("❌ External DB sync failed (non-blocking):", extErr);
     }
 
     return new Response(
