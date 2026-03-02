@@ -238,6 +238,7 @@ const RegisterTeam = () => {
           selected_problem_id: selectedProblemId,
           selected_domain: selectedDomain,
           approach_description: selectedProblem?.problem_description || "",
+          problem_statement_title: selectedProblem?.problem_title || "",
           mentor_name: mentorName,
           mentor_email: mentorEmail,
           mentor_contact: mentorContact,
@@ -249,7 +250,6 @@ const RegisterTeam = () => {
       if (result?.error) throw new Error(result.error);
 
       // 4. Sync to External Database
-      const selectedProblem = problems.find((p) => p.id === selectedProblemId);
       externalSupabase
         .from("team_registrations")
         .insert({
