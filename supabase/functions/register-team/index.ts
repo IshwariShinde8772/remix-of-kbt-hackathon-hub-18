@@ -85,10 +85,12 @@ serve(async (req) => {
     console.log(`✅ PRIMARY DB saved: ${result.team_id} - ${result.team_name}`);
 
     // ─────────────────────────────────────────────────────────────
-    // SEND CONFIRMATION EMAIL via Resend
+    // SEND CONFIRMATION EMAIL via Gmail SMTP (App Password)
     // ─────────────────────────────────────────────────────────────
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (resendApiKey) {
+    const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+    const gmailUser = "kbtavinyathon@gmail.com";
+
+    if (gmailAppPassword) {
       try {
         const emailHtml = `
 <!DOCTYPE html>
@@ -125,37 +127,40 @@ serve(async (req) => {
       </table>
 
       <p style="color:#333;font-size:14px;margin-top:25px;">Best of luck! 🚀</p>
-      <p style="color:#666;font-size:13px;margin-top:20px;">— Team KBT Avinyathon</p>
+      <p style="color:#666;font-size:13px;margin-top:20px;">— Team KBT Avinyathon<br><a href="mailto:kbtavinyathon@gmail.com" style="color:#e94560;">kbtavinyathon@gmail.com</a></p>
     </div>
   </div>
 </body>
 </html>`;
 
-        const emailRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: "KBT Avinyathon <kbt.hackathon@kbtcoe.org>",
-            to: [data.leader_email],
-            subject: `✅ Registration Confirmed – Team ID: ${result.team_id} | KBT Avinyathon 2026`,
-            html: emailHtml,
-          }),
+
+        // Use Deno's smtp module with Gmail App Password
+        const { SmtpClient } = await import("https://deno.land/x/smtp@v0.7.0/mod.ts");
+        const client = new SmtpClient();
+
+        await client.connectTLS({
+          hostname: "smtp.gmail.com",
+          port: 465,
+          username: gmailUser,
+          password: gmailAppPassword,
         });
 
-        const emailResult = await emailRes.json();
-        if (emailRes.ok) {
-          console.log(`✅ Confirmation email sent to ${data.leader_email}`);
-        } else {
-          console.error("❌ Email send failed:", emailResult);
-        }
+        await client.send({
+          from: gmailUser,
+          to: data.leader_email,
+          subject: `✅ Registration Confirmed – Team ID: ${result.team_id} | KBT Avinyathon 2026`,
+          content: "Please view this email in an HTML-compatible mail client.",
+          html: emailHtml,
+        });
+
+        await client.close();
+        console.log(`✅ Email sent to ${data.leader_email} via Gmail SMTP`);
+
       } catch (emailErr) {
         console.error("❌ Email send error (non-blocking):", emailErr);
       }
     } else {
-      console.error("❌ RESEND_API_KEY not set, skipping confirmation email");
+      console.error("❌ GMAIL_APP_PASSWORD not set, skipping confirmation email");
     }
 
     // ─────────────────────────────────────────────────────────────
