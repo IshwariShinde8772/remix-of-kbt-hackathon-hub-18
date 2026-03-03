@@ -20,6 +20,7 @@ interface ProblemStatement {
   targeted_audience: string | null;
   resources_provided: string | null;
   resource_file_url: string | null;
+  company_website: string | null;
   status: string;
   created_at: string;
 }
@@ -49,11 +50,17 @@ const DOMAIN_COLORS: Record<string, string> = {
 const COMPANY_WEBSITES: Record<string, string> = {
   "neelay industries ltd.": "https://www.neelaygroup.com/about.php",
   "aerogravity pvt ltd (nxtqube)": "https://nxtqube.com/",
+  "samarth developers": "https://www.samarthdevelopers.in/",
+  "chemito infotech pvt ltd": "https://www.chemito.net/",
 };
 
-// Case-insensitive lookup for company websites
-const getCompanyWebsite = (companyName: string): string | undefined =>
-  COMPANY_WEBSITES[companyName.toLowerCase().trim()];
+// Enhanced lookup: first check database-provided website, then fall back to hardcoded list
+const getCompanyWebsite = (problem: ProblemStatement): string | undefined => {
+  if (problem.company_website && problem.company_website.startsWith("http")) {
+    return problem.company_website;
+  }
+  return COMPANY_WEBSITES[problem.company_name.toLowerCase().trim()];
+};
 
 // Resources keyed by company name (for Avani & Samarth)
 const COMPANY_RESOURCES: Record<string, { label: string; file: string }[]> = {
@@ -348,9 +355,9 @@ const ProblemStatements = () => {
                     <tr>
                       <td className="py-3 pr-4 font-semibold text-sm">Organization</td>
                       <td className="py-3 text-sm">
-                        {getCompanyWebsite(selectedWithId.company_name) ? (
+                        {getCompanyWebsite(selectedWithId) ? (
                           <a
-                            href={getCompanyWebsite(selectedWithId.company_name)}
+                            href={getCompanyWebsite(selectedWithId)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-primary hover:underline flex items-center gap-1 w-fit font-medium"

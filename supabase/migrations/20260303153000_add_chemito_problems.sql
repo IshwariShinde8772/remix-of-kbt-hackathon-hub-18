@@ -1,0 +1,86 @@
+
+-- Insert 5 new problem statements from Chemito Infotech Pvt Ltd
+INSERT INTO public.problem_statements (
+    id,
+    company_name,
+    company_website,
+    contact_person,
+    email,
+    phone,
+    problem_title,
+    problem_description,
+    domain,
+    targeted_audience,
+    expected_outcome,
+    status
+) VALUES 
+(
+    '1c359ca1-1ced-48d0-85df-5242ca3a45d9',
+    'Chemito Infotech Pvt Ltd',
+    'https://www.chemito.net/',
+    'Sonali Hagawane/ Manish Pathak',
+    'hsonali@chemito.net',
+    '7020656564',
+    'Automation is required for in-process testing, as well as for the preparation of test reports / in-process check sheets.',
+    'Currently: Manual test reports and in-process check sheets are prepared. Risk of wrong data entry due to oversight. Report preparation takes excessive time. One full manpower is occupied in reporting. Testing happens in two stages: In-process testing and Final testing. Consolidating both stages increases report preparation time. We need: Automation in testing, Automation in report generation, Reduction in manpower & errors, Faster turnaround time.',
+    'Automation',
+    'Production in-process and final testing engineers/operators.',
+    '1. Automation is required for in-process testing, as well as for the preparation of test reports / in-process check sheets. 2. To save the manpower.',
+    'approved'
+),
+(
+    'd4ba87b4-fbbb-4cf4-9e88-0c8c33437fca',
+    'Chemito Infotech Pvt Ltd',
+    'https://www.chemito.net/',
+    'Sonali Hagawane/ Manish Pathak',
+    'hsonali@chemito.net',
+    '7020656564',
+    '5V/3A Power supply Design for EMI-EMC',
+    '5V/3A Power supply Design for EMI-EMC. 9 to 36 Vdc Power input and 5V fixed output with load 3A',
+    'Hardware',
+    'Testing Engineer',
+    'need to Reduce EMI-EMC',
+    'approved'
+),
+(
+    '59189d08-d6a5-4575-85e3-13b862a87252',
+    'Chemito Infotech Pvt Ltd',
+    'https://www.chemito.net/',
+    'Sonali Hagawane/ Manish Pathak',
+    'hsonali@chemito.net',
+    '7020656564',
+    '5V/5A Power supply Design for EMI-EMC',
+    '5V/5A Power supply Design for EMI-EMC. 9 to 36 Vdc Power input and 5V fixed output with load 5A',
+    'Hardware',
+    'testing engineer',
+    'need to Reduce EMI-EMC',
+    'approved'
+),
+(
+    'ee1bbfeb-afac-47f4-9915-5415550245f3',
+    'Chemito Infotech Pvt Ltd',
+    'https://www.chemito.net/',
+    'Sonali Hagawane/ Manish Pathak',
+    'hsonali@chemito.net',
+    '7020656564',
+    '5V/10A Power supply Design for EMI-EMC',
+    '5V/10A Power supply Design for EMI-EMC. 9 to 36 Vdc Power input and 5V fixed output with load 10A',
+    'Hardware',
+    'testing engieer',
+    'need to Reduce EMI-EMC',
+    'approved'
+),
+(
+    '4e6ba325-823b-456a-bb5d-5acfc21c4f62',
+    'Chemito Infotech Pvt Ltd',
+    'https://www.chemito.net/',
+    'Sonali Hagawane/ Manish Pathak',
+    'hsonali@chemito.net',
+    '7020656564',
+    'CAN Simulator',
+    'CAN Simulator for Vehicle CAN Debugging',
+    'Hardware',
+    'testing egineer',
+    'need to Reduce debug.',
+    'approved'
+);
