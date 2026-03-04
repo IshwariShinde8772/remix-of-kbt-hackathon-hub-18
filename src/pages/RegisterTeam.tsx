@@ -298,7 +298,12 @@ const RegisterTeam = () => {
                       <Label>Institute Number *</Label>
                       <div className="relative">
                         <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input className="pl-10" placeholder="e.g. KBT-2024" value={instituteNumber} onChange={(e) => setInstituteNumber(e.target.value)} />
+                        <Input
+                          className="pl-10"
+                          placeholder="e.g. 123456"
+                          value={instituteNumber}
+                          onChange={(e) => setInstituteNumber(e.target.value.replace(/\D/g, ""))}
+                        />
                       </div>
                     </div>
 

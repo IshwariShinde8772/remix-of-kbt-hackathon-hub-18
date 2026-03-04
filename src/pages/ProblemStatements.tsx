@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, Filter, ExternalLink, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Search, RefreshCw, Filter, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
@@ -20,7 +20,6 @@ interface ProblemStatement {
   targeted_audience: string | null;
   resources_provided: string | null;
   resource_file_url: string | null;
-  company_website: string | null;
   status: string;
   created_at: string;
 }
@@ -48,45 +47,9 @@ const DOMAIN_COLORS: Record<string, string> = {
 };
 
 const COMPANY_WEBSITES: Record<string, string> = {
-  "neelay industries ltd.": "https://www.neelaygroup.com/about.php",
-  "aerogravity pvt ltd (nxtqube)": "https://nxtqube.com/",
-  "samarth developers": "https://www.samarthdevelopers.in/",
-  "chemito infotech pvt ltd": "https://www.chemito.net/",
+  "Neelay Industries": "https://www.neelaygroup.com/about.php",
+  "Aerogravity Pvt Ltd": "https://nxtqube.com/",
 };
-
-// Enhanced lookup: first check database-provided website, then fall back to hardcoded list
-const getCompanyWebsite = (problem: ProblemStatement): string | undefined => {
-  if (problem.company_website && problem.company_website.startsWith("http")) {
-    return problem.company_website;
-  }
-  return COMPANY_WEBSITES[problem.company_name.toLowerCase().trim()];
-};
-
-// Resources keyed by company name (for Avani & Samarth)
-const COMPANY_RESOURCES: Record<string, { label: string; file: string }[]> = {
-  "avani engg. pvt. ltd.": [
-    { label: "Avani Engg. Resource File", file: "/resources/avani/avani_resource.jpg" },
-  ],
-  "samarth developers": [
-    { label: "Samarth Developers Resource File", file: "/resources/samarth/Samarth developers.pdf" },
-  ],
-};
-
-// Resources keyed by exact problem title (for problems that share a company but need different files)
-const PROBLEM_TITLE_RESOURCES: Record<string, { label: string; file: string }[]> = {
-  "design and fabrication of set-up for manufacturing of locking pin and washer": [
-    { label: "Design & Fabrication Resource", file: "/resources/pentas/Pentas Insulation (Design).pdf" },
-  ],
-  "temperature distribution of composite wall using cfd": [
-    { label: "Temperature Distribution Resource", file: "/resources/pentas/Pentas Insulation (Temperature).pdf" },
-  ],
-};
-
-// Lookup: problem title takes priority, falls back to company name
-const getProblemResources = (companyName: string, problemTitle: string) =>
-  PROBLEM_TITLE_RESOURCES[problemTitle.toLowerCase().trim()] ??
-  COMPANY_RESOURCES[companyName.toLowerCase().trim()] ??
-  [];
 
 const ITEMS_PER_PAGE = 10;
 
@@ -278,7 +241,19 @@ const ProblemStatements = () => {
                     </Badge>
                   </div>
                   <div className="text-sm text-foreground truncate" title={problem.company_name}>
-                    {problem.company_name}
+                    {COMPANY_WEBSITES[problem.company_name] ? (
+                      <a
+                        href={COMPANY_WEBSITES[problem.company_name]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1 w-fit"
+                      >
+                        {problem.company_name}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      problem.company_name
+                    )}
                   </div>
                   <div>
                     <p className="font-semibold text-sm text-foreground">{problem.problem_title}</p>
@@ -355,12 +330,12 @@ const ProblemStatements = () => {
                     <tr>
                       <td className="py-3 pr-4 font-semibold text-sm">Organization</td>
                       <td className="py-3 text-sm">
-                        {getCompanyWebsite(selectedWithId) ? (
+                        {COMPANY_WEBSITES[selectedWithId.company_name] ? (
                           <a
-                            href={getCompanyWebsite(selectedWithId)}
+                            href={COMPANY_WEBSITES[selectedWithId.company_name]}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:underline flex items-center gap-1 w-fit font-medium"
+                            className="text-primary hover:underline flex items-center gap-1 w-fit"
                           >
                             {selectedWithId.company_name}
                             <ExternalLink className="w-3 h-3" />
@@ -371,43 +346,7 @@ const ProblemStatements = () => {
                       </td>
                     </tr>
                     <tr><td className="py-3 pr-4 font-semibold text-sm">Domain / Category</td><td className="py-3 text-sm">{selectedWithId.domain}</td></tr>
-                    {selectedWithId.resources_provided && (
-                      <tr>
-                        <td className="py-3 pr-4 font-semibold text-sm align-top">Resources Provided</td>
-                        <td className="py-3 text-sm">
-                          <p className="mb-2">{selectedWithId.resources_provided}</p>
-                          {getProblemResources(selectedWithId.company_name, selectedWithId.problem_title).map((res) => (
-                            <a
-                              key={res.file}
-                              href={res.file}
-                              download
-                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-primary/40 text-primary text-xs font-medium hover:bg-primary/10 transition-colors mr-2 mb-1"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              {res.label}
-                            </a>
-                          ))}
-                        </td>
-                      </tr>
-                    )}
-                    {!selectedWithId.resources_provided && getProblemResources(selectedWithId.company_name, selectedWithId.problem_title).length > 0 && (
-                      <tr>
-                        <td className="py-3 pr-4 font-semibold text-sm align-top">Resources Provided</td>
-                        <td className="py-3">
-                          {getProblemResources(selectedWithId.company_name, selectedWithId.problem_title).map((res) => (
-                            <a
-                              key={res.file}
-                              href={res.file}
-                              download
-                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-primary/40 text-primary text-xs font-medium hover:bg-primary/10 transition-colors mr-2 mb-1"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              {res.label}
-                            </a>
-                          ))}
-                        </td>
-                      </tr>
-                    )}
+                    {selectedWithId.resources_provided && <tr><td className="py-3 pr-4 font-semibold text-sm">Resources Provided</td><td className="py-3 text-sm">{selectedWithId.resources_provided}</td></tr>}
                     {selectedWithId.resource_file_url && (
                       <tr>
                         <td className="py-3 pr-4 font-semibold text-sm">Additional Resources</td>
