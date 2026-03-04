@@ -1,73 +1,73 @@
-# Welcome to your Lovable project
+# KBT Avinyathon 2026 – Hackathon Hub
 
-## Project info
+![KBT Avinyathon 2026](https://img.shields.io/badge/KBT_Avinyathon-2026-blue?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Production-success?style=for-the-badge)
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+A premium, state-of-the-art hackathon management portal designed for **KBTCOE Nashik**. This platform streamlines participant registration, problem statement management, and real-time synchronization between industrial challenges and student innovation.
 
-## How can I edit this code?
+## 🚀 Key Features
 
-There are several ways of editing your application.
+-   **Seamless Registration**: Dynamic multi-step team registration form with real-time validation.
+-   **Dual-Database Sync**: Automated synchronization between primary and external Supabase instances using Edge Functions.
+-   **Problem Management**: Industrial partner challenges categorized by domain with unique human-readable IDs.
+-   **Automated Notifications**: Professional confirmation emails sent via Gmail SMTP (Nodemailer) with unique Team IDs for submission tracking.
+-   **Responsive UI**: Modern, high-performance interface built with React, Shadcn/UI, and Tailwind CSS.
 
-**Use Lovable**
+## 🛠️ Technology Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+-   **Frontend**: React 18, Vite, TypeScript
+-   **Styling**: Tailwind CSS, Lucide React, Shadcn/UI
+-   **Backend/BaaS**: Supabase (Database, Edge Functions, Auth, Storage)
+-   **Email Engine**: Nodemailer with Deno/Supabase Edge Functions
+-   **State Management**: TanStack Query (React Query)
 
-Changes made via Lovable will be committed automatically to this repo.
+## 💻 Local Development
 
-**Use your preferred IDE**
+Follow these steps to set up the project locally:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
+### 1. Clone the repository
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+git clone https://github.com/IshwariShinde8772/remix-of-kbt-hackathon-hub-18.git
+cd remix-of-kbt-hackathon-hub-18
 ```
 
-**Edit a file directly in GitHub**
+### 2. Install dependencies
+```sh
+npm install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 3. Environment Variables
+Create a `.env` file in the root directory and add your Supabase credentials:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-**Use GitHub Codespaces**
+### 4. Run the development server
+```sh
+npm run dev
+```
+The application will be available at `http://localhost:5173`.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📂 Project Structure
 
-## What technologies are used for this project?
+```text
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── pages/          # Main application pages (Registration, Solutions, etc.)
+│   ├── hooks/          # Custom React hooks
+│   └── lib/            # Utility functions and Supabase client
+├── supabase/
+│   ├── functions/      # Edge Functions (Registration, Sync, Email)
+│   └── migrations/     # SQL Database migrations
+└── public/             # Static assets (Logos, Icons)
+```
 
-This project is built with:
+## 📧 Contact & Support
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+For any queries regarding the KBT Avinyathon 2026 portal, please reach out to:
+- **Email**: [kbtavinyathon@gmail.com](mailto:kbtavinyathon@gmail.com)
+- **Institution**: KBT College of Engineering, Nashik
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+Developed with ❤️ for the KBT Hackathon Community.
