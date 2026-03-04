@@ -85,6 +85,80 @@ serve(async (req) => {
     console.log(`✅ PRIMARY DB saved: ${result.team_id} - ${result.team_name}`);
 
     // ─────────────────────────────────────────────────────────────
+    // SEND CONFIRMATION EMAIL via Resend
+    // ─────────────────────────────────────────────────────────────
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (resendApiKey) {
+      try {
+        const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:30px;border-radius:12px 12px 0 0;text-align:center;">
+      <h1 style="color:#e94560;margin:0;font-size:28px;">🎉 Registration Confirmed!</h1>
+      <p style="color:#ffffff;margin:10px 0 0;font-size:16px;">KBT Avinyathon 2026</p>
+    </div>
+    <div style="background:#f8f9fa;padding:30px;border-radius:0 0 12px 12px;border:1px solid #e0e0e0;border-top:none;">
+      <p style="color:#333;font-size:16px;">Dear <strong>${data.leader_name}</strong>,</p>
+      <p style="color:#333;font-size:15px;">Your team <strong>"${data.team_name}"</strong> has been successfully registered for <strong>KBT Avinyathon 2026</strong>!</p>
+      
+      <div style="background:#ffffff;border:2px solid #e94560;border-radius:10px;padding:20px;margin:20px 0;text-align:center;">
+        <p style="color:#666;margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Your Unique Team ID</p>
+        <h2 style="color:#e94560;margin:0;font-size:32px;font-weight:bold;letter-spacing:2px;">${result.team_id}</h2>
+      </div>
+
+      <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:15px;border-radius:4px;margin:20px 0;">
+        <p style="color:#856404;margin:0;font-size:14px;"><strong>⚠️ Important:</strong> Save this Team ID securely. You will need it to submit your solution.</p>
+      </div>
+
+      <h3 style="color:#1a1a2e;margin:25px 0 10px;">📋 Registration Summary</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Team Name</td><td style="padding:8px;border-bottom:1px solid #eee;color:#333;font-weight:bold;">${data.team_name}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">College</td><td style="padding:8px;border-bottom:1px solid #eee;color:#333;">${data.college_name}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Leader</td><td style="padding:8px;border-bottom:1px solid #eee;color:#333;">${data.leader_name}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Domain</td><td style="padding:8px;border-bottom:1px solid #eee;color:#333;">${data.selected_domain || "Not selected"}</td></tr>
+      </table>
+
+      <p style="color:#333;font-size:14px;margin-top:25px;">Best of luck! 🚀</p>
+      <p style="color:#666;font-size:13px;margin-top:20px;">— Team KBT Avinyathon</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+        const emailRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({
+            from: "KBT Avinyathon <kbt.hackathon@kbtcoe.org>",
+            to: [data.leader_email],
+            subject: `✅ Registration Confirmed – Team ID: ${result.team_id} | KBT Avinyathon 2026`,
+            html: emailHtml,
+          }),
+        });
+
+        const emailResult = await emailRes.json();
+        if (emailRes.ok) {
+          console.log(`✅ Confirmation email sent to ${data.leader_email}`);
+        } else {
+          console.error("❌ Email send failed:", emailResult);
+        }
+      } catch (emailErr) {
+        console.error("❌ Email send error (non-blocking):", emailErr);
+      }
+    } else {
+      console.error("❌ RESEND_API_KEY not set, skipping confirmation email");
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // EXTERNAL SUPABASE (lxawemydhhmqjahttrlb) — table: team_registrations
     // ─────────────────────────────────────────────────────────────
     const externalUrl = "https://lxawemydhhmqjahttrlb.supabase.co";
