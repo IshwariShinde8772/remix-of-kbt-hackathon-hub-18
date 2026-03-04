@@ -193,7 +193,7 @@ serve(async (req) => {
         await transporter.sendMail({
           from: `"KBT Avinyathon 2026" <${gmailUser}>`,
           to: data.leader_email,
-          cc: ["kbtavinyathon@gmail.com", "deshmukh.tejaswini@kbtcoe.org"],
+          cc: ["kbtavinyathon@gmail.com", "deshmukh.tejaswini@kbtcoe.org","kbt.hackathon@kbtcoe.org"],
           subject: `✅ Registration Confirmed – Team ID: ${result.team_id} | KBT Avinyathon 2026`,
           text: "Please view this email in an HTML-compatible mail client.",
           html: emailHtml,
