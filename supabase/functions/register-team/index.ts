@@ -177,26 +177,27 @@ serve(async (req) => {
 </html>`;
 
 
-        // Use Deno's smtp module with Gmail App Password
-        const { SmtpClient } = await import("https://deno.land/x/smtp@v0.7.0/mod.ts");
-        const client = new SmtpClient();
+        // Use nodemailer via Deno npm compatibility
+        const nodemailer = (await import("npm:nodemailer@6")).default;
 
-        await client.connectTLS({
-          hostname: "smtp.gmail.com",
+        const transporter = nodemailer.createTransport({
+          host: "smtp.gmail.com",
           port: 465,
-          username: gmailUser,
-          password: gmailAppPassword,
+          secure: true,
+          auth: {
+            user: gmailUser,
+            pass: gmailAppPassword,
+          },
         });
 
-        await client.send({
-          from: gmailUser,
+        await transporter.sendMail({
+          from: `"KBT Avinyathon 2026" <${gmailUser}>`,
           to: data.leader_email,
           subject: `✅ Registration Confirmed – Team ID: ${result.team_id} | KBT Avinyathon 2026`,
-          content: "Please view this email in an HTML-compatible mail client.",
+          text: "Please view this email in an HTML-compatible mail client.",
           html: emailHtml,
         });
 
-        await client.close();
         console.log(`✅ Email sent to ${data.leader_email} via Gmail SMTP`);
 
       } catch (emailErr) {
