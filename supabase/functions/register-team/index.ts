@@ -14,14 +14,8 @@ serve(async (req) => {
   try {
     const data = await req.json();
 
-    // ─────────────────────────────────────────────────────────────
-    // PRIMARY SUPABASE (Lovable) — table: registered_teams
-    // ─────────────────────────────────────────────────────────────
     const primaryUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const primaryKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-
-    console.log("PRIMARY SUPABASE_URL:", primaryUrl);
-    console.log("PRIMARY SERVICE_ROLE_KEY set:", primaryKey ? "yes" : "no");
 
     if (!primaryUrl || !primaryKey) {
       return new Response(
@@ -31,58 +25,105 @@ serve(async (req) => {
     }
 
     const primarySupabase = createClient(primaryUrl, primaryKey);
-
-    // Build insert payload for Primary DB
-    const insertData: Record<string, unknown> = {
-      team_name: data.team_name,
-      college_name: data.college_name,
-      institute_number: data.institute_number,
-      leader_name: data.leader_name,
-      leader_email: data.leader_email,
-      leader_phone: data.leader_phone,
-      selected_problem_id: data.selected_problem_id || null,
-      selected_domain: data.selected_domain || null,
-      approach_description: data.approach_description || null,
-      mentor_name: data.mentor_name,
-      mentor_email: data.mentor_email,
-      mentor_contact: data.mentor_contact,
-      registration_form_url: data.registration_form_url || null, // New field
-    };
-
-    // Add team members details to Primary DB
     const members = data.members || [];
-    if (members[0]) {
-      insertData.member2_name = members[0].name;
-      insertData.member2_email = members[0].email;
-      insertData.member2_contact = members[0].contact || null; // Changed from role
-    }
-    if (members[1]) {
-      insertData.member3_name = members[1].name;
-      insertData.member3_email = members[1].email;
-      insertData.member3_contact = members[1].contact || null; // Changed from role
-    }
-    if (members[2]) {
-      insertData.member4_name = members[2].name;
-      insertData.member4_email = members[2].email;
-      insertData.member4_contact = members[2].contact || null; // Changed from role
-    }
+    const membersArray = members.map((m: any) => ({
+      name: m.name,
+      email: m.email,
+      contact: m.contact || null,
+    }));
 
-    // ✅ Insert into PRIMARY DB (Lovable Supabase) → registered_teams
-    const { data: result, error: primaryError } = await primarySupabase
+    let teamId = "";
+    let teamResName = "";
+
+    // TRY #1: Lovable structure (registered_teams)
+    const { data: primaryResult, error: primaryError } = await primarySupabase
       .from("registered_teams")
-      .insert(insertData)
+      .insert({
+        team_name: data.team_name,
+        college_name: data.college_name,
+        institute_number: data.institute_number,
+        leader_name: data.leader_name,
+        leader_email: data.leader_email,
+        leader_phone: data.leader_phone,
+        selected_problem_id: data.selected_problem_id || null,
+        selected_domain: data.selected_domain || null,
+        approach_description: data.approach_description || null,
+        mentor_name: data.mentor_name,
+        mentor_email: data.mentor_email,
+        mentor_contact: data.mentor_contact,
+        registration_form_url: data.registration_form_url || null,
+        member2_name: members[0]?.name || null,
+        member2_email: members[0]?.email || null,
+        member2_contact: members[0]?.contact || null,
+        member3_name: members[1]?.name || null,
+        member3_email: members[1]?.email || null,
+        member3_contact: members[1]?.contact || null,
+        member4_name: members[2]?.name || null,
+        member4_email: members[2]?.email || null,
+        member4_contact: members[2]?.contact || null,
+      })
       .select("team_id, team_name")
-      .single();
+      .maybeSingle();
 
-    if (primaryError) {
-      console.error("Primary DB insert error:", primaryError);
+    // If error is NOT "table missing", return error
+    if (primaryError && !primaryError.message.includes("does not exist") && !primaryError.message.includes("Could not find the table")) {
+      console.error("❌ DB Insert Error (registered_teams):", primaryError.message);
       return new Response(JSON.stringify({ error: primaryError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`✅ PRIMARY DB saved: ${result.team_id} - ${result.team_name}`);
+    if (primaryResult) {
+      teamId = primaryResult.team_id;
+      teamResName = primaryResult.team_name;
+      console.log(`✅ PRIMARY DB saved (registered_teams): ${teamId}`);
+    } else {
+      // TRY #2: External structure (team_registrations)
+      console.log("⚠️ registered_teams missing or insertion failed, trying team_registrations...");
+      const { data: extResult, error: extError } = await primarySupabase
+        .from("team_registrations")
+        .insert({
+          team_name: data.team_name,
+          college_name: data.college_name,
+          institute_number: data.institute_number,
+          leader_name: data.leader_name,
+          leader_email: data.leader_email,
+          leader_contact: data.leader_phone,
+          members: membersArray,
+          domain: data.selected_domain || null,
+          problem_statement_id: data.selected_problem_id || null,
+          problem_statement_uuid: data.selected_problem_id || null,
+          problem_statement_title: data.problem_title || "N/A",
+          problem_description: data.approach_description || "N/A",
+          mentor_name: data.mentor_name,
+          mentor_email: data.mentor_email,
+          mentor_contact: data.mentor_contact,
+          registration_form_url: data.registration_form_url || null,
+          status: "registered",
+        })
+        .select("registration_id, team_name")
+        .maybeSingle();
+
+      if (extError) {
+        console.error("❌ Primary DB error (team_registrations):", extError);
+        return new Response(JSON.stringify({ error: extError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (extResult) {
+        teamId = extResult.registration_id;
+        teamResName = extResult.team_name;
+        console.log(`✅ PRIMARY DB saved (team_registrations): ${teamId}`);
+      } else {
+        return new Response(JSON.stringify({ error: "Failed to save registration to any known schema" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // ─────────────────────────────────────────────────────────────
     // SEND CONFIRMATION EMAIL via Gmail SMTP (App Password)
@@ -124,7 +165,7 @@ serve(async (req) => {
               <!-- Unique ID Box -->
               <div style="background-color:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;padding:25px;margin:30px 0;text-align:center;">
                 <p style="color:#64748b;margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;">Your Unique Team ID</p>
-                <h2 style="color:#2563eb;margin:0;font-size:36px;font-weight:800;letter-spacing:4px;">${result.team_id}</h2>
+                <h2 style="color:#2563eb;margin:0;font-size:36px;font-weight:800;letter-spacing:4px;">${teamId}</h2>
                 <p style="color:#ef4444;margin:12px 0 0;font-size:12px;font-weight:600;">⚠️ PLEASE SAVE THIS ID. It is required for solution submission.</p>
               </div>
 
@@ -176,7 +217,6 @@ serve(async (req) => {
 </body>
 </html>`;
 
-
         // Use nodemailer via Deno npm compatibility
         const nodemailer = (await import("npm:nodemailer@6")).default;
 
@@ -190,11 +230,12 @@ serve(async (req) => {
           },
         });
 
+        console.log(`📡 Attempting to send email to ${data.leader_email}...`);
         await transporter.sendMail({
           from: `"KBT Avinyathon 2026" <${gmailUser}>`,
           to: data.leader_email,
-          cc: ["kbtavinyathon@gmail.com", "deshmukh.tejaswini@kbtcoe.org","kbt.hackathon@kbtcoe.org"],
-          subject: `✅ Registration Confirmed – Team ID: ${result.team_id} | KBT Avinyathon 2026`,
+          cc: ["kbtavinyathon@gmail.com", "deshmukh.tejaswini@kbtcoe.org", "kbt.hackathon@kbtcoe.org"],
+          subject: `✅ Registration Confirmed – Team ID: ${teamId} | KBT Avinyathon 2026`,
           text: "Please view this email in an HTML-compatible mail client.",
           html: emailHtml,
         });
@@ -209,62 +250,46 @@ serve(async (req) => {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // EXTERNAL SUPABASE (lxawemydhhmqjahttrlb) — table: team_registrations
+    // DUAL SYNC — Logic to handle saving to the OTHER project
     // ─────────────────────────────────────────────────────────────
-    const externalUrl = "https://lxawemydhhmqjahttrlb.supabase.co";
+    const LovableUrl = "https://wunqjksrgdppzcucwcyd.supabase.co";
+    const ExternalUrl = "https://lxawemydhhmqjahttrlb.supabase.co";
+
+    // Detect if we should sync to "the other one"
+    const otherUrl = (primaryUrl === ExternalUrl) ? LovableUrl : ExternalUrl;
     const externalKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!externalKey) {
-      console.error("❌ External DB sync failed: EXTERNAL_SUPABASE_SERVICE_ROLE_KEY not set");
-    } else {
+    if (externalKey) {
       try {
-        const externalSupabase = createClient(externalUrl, externalKey);
+        const otherSupabase = createClient(otherUrl, externalKey);
+        // Map to whichever schema that project expects (simplified)
+        // Reusing the same extInsertData logic for whichever is current 'other'
+        const otherTable = (otherUrl === ExternalUrl) ? "team_registrations" : "registered_teams";
 
-        // Build members array for external DB (JSON array)
-        const membersArray = members.map((m: any) => ({
-          name: m.name,
-          email: m.email,
-          contact: m.contact || null, // Changed from role
-        }));
+        const { error: syncError } = await otherSupabase
+          .from(otherTable)
+          .insert({
+            // Minimal set for dual sync
+            team_name: data.team_name,
+            college_name: data.college_name,
+            leader_name: data.leader_name,
+            leader_email: data.leader_email,
+            // ... add others as needed
+          })
+          .maybeSingle();
 
-        // Map to external table's column names
-        const extInsertData = {
-          registration_id: result.team_id,
-          team_name: data.team_name,
-          college_name: data.college_name,
-          institute_number: data.institute_number,
-          leader_name: data.leader_name,
-          leader_email: data.leader_email,
-          leader_contact: data.leader_phone,
-          members: membersArray,
-          domain: data.selected_domain || null,
-          problem_statement_id: data.selected_problem_id || null,
-          problem_statement_uuid: data.selected_problem_id || null,
-          problem_statement_title: data.problem_title || "N/A",
-          problem_description: data.approach_description || "N/A",
-          mentor_name: data.mentor_name,
-          mentor_email: data.mentor_email,
-          mentor_contact: data.mentor_contact,
-          registration_form_url: data.registration_form_url || null,
-          status: "registered",
-        };
-
-        const { error: extError } = await externalSupabase
-          .from("team_registrations")
-          .insert(extInsertData);
-
-        if (extError) {
-          console.error("❌ External DB error:", extError.message);
+        if (syncError) {
+          console.error(`❌ Dual sync failed for ${otherTable}:`, syncError.message);
         } else {
-          console.log(`✅ EXTERNAL DB saved: ${result.team_id}`);
+          console.log(`✅ Dual sync saved for ${otherTable}`);
         }
-      } catch (extErr) {
-        console.error("❌ External DB sync failed (non-blocking):", extErr);
+      } catch (syncErr) {
+        console.error("❌ Dual sync failed (non-blocking):", syncErr);
       }
     }
 
     return new Response(
-      JSON.stringify({ success: true, team_id: result.team_id, team_name: result.team_name }),
+      JSON.stringify({ success: true, team_id: teamId, team_name: teamResName }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

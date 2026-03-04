@@ -278,7 +278,19 @@ const ProblemStatements = () => {
                     </Badge>
                   </div>
                   <div className="text-sm text-foreground truncate" title={problem.company_name}>
-                    {problem.company_name}
+                    {getCompanyWebsite(problem) ? (
+                      <a
+                        href={getCompanyWebsite(problem)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1 w-fit"
+                      >
+                        {problem.company_name}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      problem.company_name
+                    )}
                   </div>
                   <div>
                     <p className="font-semibold text-sm text-foreground">{problem.problem_title}</p>
