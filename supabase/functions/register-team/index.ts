@@ -98,38 +98,81 @@ serve(async (req) => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registration Confirmed - KBT Avinyathon 2026</title>
 </head>
-<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:20px;">
-    <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:30px;border-radius:12px 12px 0 0;text-align:center;">
-      <h1 style="color:#e94560;margin:0;font-size:28px;">🎉 Registration Confirmed!</h1>
-      <p style="color:#ffffff;margin:10px 0 0;font-size:16px;">KBT Avinyathon 2026</p>
-    </div>
-    <div style="background:#f8f9fa;padding:30px;border-radius:0 0 12px 12px;border:1px solid #e0e0e0;border-top:none;">
-      <p style="color:#333;font-size:16px;">Dear <strong>${data.leader_name}</strong>,</p>
-      <p style="color:#333;font-size:15px;">Your team <strong>"${data.team_name}"</strong> has been successfully registered for <strong>KBT Avinyathon 2026</strong>!</p>
-      
-      <div style="background:#ffffff;border:2px solid #e94560;border-radius:10px;padding:20px;margin:20px 0;text-align:center;">
-        <p style="color:#666;margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Your Unique Team ID</p>
-        <h2 style="color:#e94560;margin:0;font-size:32px;font-weight:bold;letter-spacing:2px;">${result.team_id}</h2>
-      </div>
+<body style="margin:0;padding:0;background-color:#f4f4f7;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f4f4f7;padding:20px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;shadow:0 4px 10px rgba(0,0,0,0.05);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0f172a,#1e293b);padding:40px 30px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:28px;letter-spacing:1px;font-weight:800;">KBT AVINYATHON 2026</h1>
+              <p style="color:#94a3b8;margin:10px 0 0;font-size:14px;text-transform:uppercase;letter-spacing:2px;">State-Level Hackathon • KBTCOE Nashik</p>
+            </td>
+          </tr>
+          
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px 35px;">
+              <h2 style="color:#0f172a;margin:0 0 20px;font-size:22px;">Congratulations, ${data.leader_name}!</h2>
+              <p style="color:#475569;font-size:16px;line-height:1.6;margin:0 0 25px;">
+                Your team <strong style="color:#0f172a;">"${data.team_name}"</strong> has been successfully registered for <strong>KBT Avinyathon 2026</strong>. We are thrilled to see your innovative approach to solving real-world industrial challenges!
+              </p>
+              
+              <!-- Unique ID Box -->
+              <div style="background-color:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;padding:25px;margin:30px 0;text-align:center;">
+                <p style="color:#64748b;margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;">Your Unique Team ID</p>
+                <h2 style="color:#2563eb;margin:0;font-size:36px;font-weight:800;letter-spacing:4px;">${result.team_id}</h2>
+                <p style="color:#ef4444;margin:12px 0 0;font-size:12px;font-weight:600;">⚠️ PLEASE SAVE THIS ID. It is required for solution submission.</p>
+              </div>
 
-      <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:15px;border-radius:4px;margin:20px 0;">
-        <p style="color:#856404;margin:0;font-size:14px;"><strong>⚠️ Important:</strong> Save this Team ID securely. You will need it to submit your solution.</p>
-      </div>
+              <h3 style="color:#0f172a;margin:35px 0 15px;font-size:18px;border-bottom:1px solid #e2e8f0;padding-bottom:10px;">📋 Registration Details</h3>
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="font-size:14px;">
+                <tr><td width="40%" style="padding:10px 0;color:#64748b;">Organization / College</td><td style="padding:10px 0;color:#0f172a;font-weight:600;">${data.college_name}</td></tr>
+                <tr><td style="padding:10px 0;color:#64748b;">Selected Domain</td><td style="padding:10px 0;color:#0f172a;font-weight:600;">${data.selected_domain || "Not selected"}</td></tr>
+                <tr><td style="padding:10px 0;color:#64748b;">Leader Email</td><td style="padding:10px 0;color:#0f172a;font-weight:600;">${data.leader_email}</td></tr>
+              </table>
 
-      <h3 style="color:#1a1a2e;margin:25px 0 10px;">📋 Registration Summary</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:14px;">
-        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Team Name</td><td style="padding:8px;border-bottom:1px solid #eee;color:#333;font-weight:bold;">${data.team_name}</td></tr>
-        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">College</td><td style="padding:8px;border-bottom:1px solid #eee;color:#333;">${data.college_name}</td></tr>
-        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Leader</td><td style="padding:8px;border-bottom:1px solid #eee;color:#333;">${data.leader_name}</td></tr>
-        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Domain</td><td style="padding:8px;border-bottom:1px solid #eee;color:#333;">${data.selected_domain || "Not selected"}</td></tr>
-      </table>
+              <!-- Next Steps -->
+              <div style="margin-top:40px;padding:20px;background-color:#eff6ff;border-radius:8px;">
+                <h4 style="color:#1d4ed8;margin:0 0 10px;font-size:15px;text-transform:uppercase;">🚀 What's Next?</h4>
+                <ul style="color:#1e3a8a;margin:0;padding-left:20px;font-size:14px;line-height:1.7;">
+                  <li>Visit the <strong>Problem Statements</strong> page to review your challenges.</li>
+                  <li>Prepare your proposal and prototype as per the rules.</li>
+                  <li>Stay tuned for updates on the final event schedule.</li>
+                </ul>
+              </div>
 
-      <p style="color:#333;font-size:14px;margin-top:25px;">Best of luck! 🚀</p>
-      <p style="color:#666;font-size:13px;margin-top:20px;">— Team KBT Avinyathon<br><a href="mailto:kbtavinyathon@gmail.com" style="color:#e94560;">kbtavinyathon@gmail.com</a></p>
-    </div>
-  </div>
+              <p style="color:#475569;font-size:15px;line-height:1.6;margin:40px 0 0;">
+                Best of luck with your hackathon journey! If you have any questions, feel free to reach out to our team.
+              </p>
+              
+              <p style="color:#0f172a;font-size:15px;margin:30px 0 0;">
+                Warm Regards,<br>
+                <strong style="color:#2563eb;">Team KBT Avinyathon</strong><br>
+                <span style="font-size:13px;color:#64748b;">KBTCOE Nashik</span>
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f8fafc;padding:30px;text-align:center;border-top:1px solid #e2e8f0;">
+              <p style="color:#94a3b8;margin:0;font-size:13px;">
+                © 2026 KBT College of Engineering. All rights reserved.<br>
+                Nashik, Maharashtra, India
+              </p>
+              <div style="margin-top:15px;">
+                <a href="mailto:kbtavinyathon@gmail.com" style="color:#2563eb;text-decoration:none;font-size:13px;font-weight:bold;">kbtavinyathon@gmail.com</a>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 
