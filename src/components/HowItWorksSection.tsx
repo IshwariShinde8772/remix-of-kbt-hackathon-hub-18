@@ -134,13 +134,13 @@ const HowItWorksSection = () => {
         <div className="max-w-5xl mx-auto">
 
           {/* === Row 1: Steps 1 → 2 → 3 === */}
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-10">
             {row1.map((step, index) => (
               <div key={step.number} className="relative">
                 <StepCard step={step} />
                 {index < 2 && (
-                  <div className="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 z-20 items-center justify-center w-10">
-                    <ArrowRight className="w-7 h-7 text-primary" strokeWidth={2.5} />
+                  <div className="hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 items-center justify-center" style={{ right: '-32px', width: '24px' }}>
+                    <ArrowRight className="w-6 h-6 text-primary" strokeWidth={2.5} />
                   </div>
                 )}
               </div>
@@ -157,13 +157,13 @@ const HowItWorksSection = () => {
           <div className="md:hidden"><VerticalConnector /></div>
 
           {/* === Row 2: Steps 6 ← 5 ← 4 (displayed as 6, 5, 4 with left arrows) === */}
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-10">
             {row2.map((step, index) => (
               <div key={step.number} className="relative">
                 <StepCard step={step} highlight={step.number === 5 ? "primary" : undefined} />
                 {index > 0 && (
-                  <div className="hidden md:flex absolute top-1/2 -left-5 -translate-y-1/2 z-20 items-center justify-center w-10">
-                    <ArrowRight className="w-7 h-7 text-primary rotate-180" strokeWidth={2.5} />
+                  <div className="hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 items-center justify-center" style={{ left: '-32px', width: '24px' }}>
+                    <ArrowRight className="w-6 h-6 text-primary rotate-180" strokeWidth={2.5} />
                   </div>
                 )}
               </div>
@@ -180,7 +180,7 @@ const HowItWorksSection = () => {
           <div className="md:hidden"><VerticalConnector /></div>
 
           {/* === Row 3: Steps 7 → 8 → 9 === */}
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-10">
             {row3.map((step, index) => (
               <div key={step.number} className="relative">
                 <StepCard
@@ -188,8 +188,8 @@ const HowItWorksSection = () => {
                   highlight={step.number === 9 ? "green" : undefined}
                 />
                 {index < 2 && (
-                  <div className="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 z-20 items-center justify-center w-10">
-                    <ArrowRight className="w-7 h-7 text-primary" strokeWidth={2.5} />
+                  <div className="hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 items-center justify-center" style={{ right: '-32px', width: '24px' }}>
+                    <ArrowRight className="w-6 h-6 text-primary" strokeWidth={2.5} />
                   </div>
                 )}
               </div>
