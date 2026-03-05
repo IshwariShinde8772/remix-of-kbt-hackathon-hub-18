@@ -104,11 +104,15 @@ const SubmitSolution = () => {
     return youtubeRegex.test(link);
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleSubmit = async () => {
-    if (!selectedTeamId) { toast.error("Please select your team"); return; }
-    if (!solutionFile) { toast.error("Please upload your solution PDF"); return; }
-    if (!youtubeLink.trim()) { toast.error("YouTube video link is required"); return; }
-    if (!validateYoutubeLink(youtubeLink)) { toast.error("Please enter a valid YouTube link"); return; }
+    if (!selectedTeamId) { toast.error("Please select your team"); scrollToTop(); return; }
+    if (!solutionFile) { toast.error("Please upload your solution PDF"); scrollToTop(); return; }
+    if (!youtubeLink.trim()) { toast.error("YouTube video link is required"); scrollToTop(); return; }
+    if (!validateYoutubeLink(youtubeLink)) { toast.error("Please enter a valid YouTube link"); scrollToTop(); return; }
 
     setIsSubmitting(true);
     try {
