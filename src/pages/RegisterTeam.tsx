@@ -121,34 +121,43 @@ const RegisterTeam = () => {
     setMembers(updated);
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const validateStep = (step: number): boolean => {
+    const showError = (msg: string) => {
+      toast.error(msg);
+      scrollToTop();
+      return false;
+    };
     if (step === 1) {
-      if (!teamName.trim()) { toast.error("Team name is required"); return false; }
-      if (!collegeName.trim()) { toast.error("College name is required"); return false; }
-      if (!instituteNumber.trim()) { toast.error("Institute number is required"); return false; }
-      if (!leaderName.trim()) { toast.error("Leader name is required"); return false; }
-      if (!leaderEmail.trim() || !/\S+@\S+\.\S+/.test(leaderEmail)) { toast.error("Valid leader email is required"); return false; }
-      if (!leaderPhone.trim() || leaderPhone.length < 10) { toast.error("Valid contact number is required"); return false; }
+      if (!teamName.trim()) return showError("Team name is required");
+      if (!collegeName.trim()) return showError("College name is required");
+      if (!instituteNumber.trim()) return showError("Institute number is required");
+      if (!leaderName.trim()) return showError("Leader name is required");
+      if (!leaderEmail.trim() || !/\S+@\S+\.\S+/.test(leaderEmail)) return showError("Valid leader email is required");
+      if (!leaderPhone.trim() || leaderPhone.length < 10) return showError("Valid contact number is required");
       return true;
     }
     if (step === 2) {
       for (let i = 0; i < members.length; i++) {
-        if (!members[i].name.trim()) { toast.error(`Member ${i + 1} name is required`); return false; }
-        if (!members[i].email.trim() || !/\S+@\S+\.\S+/.test(members[i].email)) { toast.error(`Valid email required for member ${i + 1}`); return false; }
-        if (!members[i].contact.trim() || members[i].contact.length < 10) { toast.error(`Valid contact required for member ${i + 1}`); return false; }
+        if (!members[i].name.trim()) return showError(`Member ${i + 1} name is required`);
+        if (!members[i].email.trim() || !/\S+@\S+\.\S+/.test(members[i].email)) return showError(`Valid email required for member ${i + 1}`);
+        if (!members[i].contact.trim() || members[i].contact.length < 10) return showError(`Valid contact required for member ${i + 1}`);
       }
       return true;
     }
     if (step === 3) {
-      if (!selectedDomain) { toast.error("Please select a domain"); return false; }
-      if (!selectedProblemId) { toast.error("Please select a problem statement"); return false; }
+      if (!selectedDomain) return showError("Please select a domain");
+      if (!selectedProblemId) return showError("Please select a problem statement");
       return true;
     }
     if (step === 4) {
-      if (!mentorName.trim()) { toast.error("Mentor name is required"); return false; }
-      if (!mentorEmail.trim() || !/\S+@\S+\.\S+/.test(mentorEmail)) { toast.error("Valid mentor email is required"); return false; }
-      if (!mentorContact.trim() || mentorContact.length < 10) { toast.error("Valid mentor contact is required"); return false; }
-      if (!regFormFile && !regFormUrl) { toast.error("Please upload the registration form"); return false; }
+      if (!mentorName.trim()) return showError("Mentor name is required");
+      if (!mentorEmail.trim() || !/\S+@\S+\.\S+/.test(mentorEmail)) return showError("Valid mentor email is required");
+      if (!mentorContact.trim() || mentorContact.length < 10) return showError("Valid mentor contact is required");
+      if (!regFormFile && !regFormUrl) return showError("Please upload the registration form");
       return true;
     }
     return true;
@@ -157,14 +166,14 @@ const RegisterTeam = () => {
   const nextStep = () => {
     if (validateStep(currentStep) && currentStep < 4) {
       setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      scrollToTop();
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      scrollToTop();
     }
   };
 
