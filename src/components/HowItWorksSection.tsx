@@ -57,9 +57,57 @@ const steps = [
   },
 ];
 
+const StepCard = ({ step, highlight }: { step: typeof steps[0]; highlight?: "primary" | "green" }) => (
+  <div
+    className={`bg-background rounded-2xl p-5 shadow-lg border-2 ${
+      highlight === "green"
+        ? "border-green-500"
+        : highlight === "primary"
+        ? "border-primary"
+        : "border-border"
+    } hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col items-center`}
+  >
+    <div
+      className={`step-badge mb-4 mx-auto text-base ${
+        highlight === "green" ? "!bg-green-500" : ""
+      }`}
+    >
+      {step.number}
+    </div>
+    <h3 className="text-base font-heading font-bold text-center mb-2 text-foreground leading-tight">
+      {step.title}
+    </h3>
+    <p className="text-muted-foreground text-center text-xs mb-4 flex-1">
+      {step.description}
+    </p>
+    <span
+      className={`inline-block text-xs font-semibold px-4 py-1.5 rounded-full ${
+        highlight === "green"
+          ? "bg-green-500/10 text-green-600"
+          : "bg-primary/10 text-primary"
+      }`}
+    >
+      {step.date}
+    </span>
+  </div>
+);
+
+const VerticalConnector = () => (
+  <div className="flex justify-center my-4">
+    <div className="flex flex-col items-center">
+      <div className="w-1 h-6 bg-primary rounded-full"></div>
+      <ArrowDown className="w-6 h-6 text-primary -mt-1" strokeWidth={3} />
+    </div>
+  </div>
+);
+
 const HowItWorksSection = () => {
-  const topRow = steps.slice(0, 5);
-  const bottomRow = [...steps.slice(5, 9)].reverse(); // 9,8,7,6
+  // Row 1: 1 → 2 → 3 (left to right)
+  const row1 = steps.slice(0, 3);
+  // Row 2: 6 ← 5 ← 4 (right to left, displayed reversed)
+  const row2 = [steps[5], steps[4], steps[3]]; // display: 6, 5, 4
+  // Row 3: 7 → 8 → 9 (left to right)
+  const row3 = steps.slice(6, 9);
 
   return (
     <section id="process" className="py-12 bg-muted/30">
@@ -83,105 +131,71 @@ const HowItWorksSection = () => {
         </div>
 
         {/* Process Flow Timeline */}
-        <div className="max-w-6xl mx-auto">
-          {/* Top Row: Steps 1-5 */}
-          <div className="grid md:grid-cols-5 gap-4">
-            {topRow.map((step, index) => (
-              <div key={index} className="relative">
-                <div
-                  className={`bg-background rounded-2xl p-4 shadow-lg border ${
-                    step.number === 5 ? "border-primary border-2" : "border-border"
-                  } hover:shadow-xl transition-all duration-300 h-full`}
-                >
-                  <div className="step-badge mb-3 mx-auto text-sm">
-                    {step.number}
-                  </div>
-                  <h3 className="text-sm font-heading font-bold text-center mb-2 text-foreground">
-                    {step.title}
-                  </h3>
-                  <p className="text-muted-foreground text-center text-xs mb-3">
-                    {step.description}
-                  </p>
-                  <div className="text-center">
-                    <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full">
-                      {step.date}
-                    </span>
-                  </div>
-                </div>
+        <div className="max-w-5xl mx-auto">
 
-                {/* Horizontal Arrow between cards */}
-                {index < 4 && (
-                  <div className="hidden md:flex absolute top-1/2 -right-4 -translate-y-1/2 z-20 items-center justify-center w-8">
-                    <ArrowRight className="w-6 h-6 text-primary" strokeWidth={3} />
+          {/* === Row 1: Steps 1 → 2 → 3 === */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {row1.map((step, index) => (
+              <div key={step.number} className="relative">
+                <StepCard step={step} />
+                {index < 2 && (
+                  <div className="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 z-20 items-center justify-center w-10">
+                    <ArrowRight className="w-7 h-7 text-primary" strokeWidth={2.5} />
                   </div>
                 )}
               </div>
             ))}
           </div>
 
-          {/* Connector Arrow: from step 5 down to step 6 (on the right side) */}
-          <div className="hidden md:flex justify-end pr-[calc(10%-8px)] my-4">
+          {/* Connector: Row 1 → Row 2 (right side) */}
+          <div className="hidden md:flex justify-end pr-[calc(16.67%-12px)] my-3">
             <div className="flex flex-col items-center">
               <div className="w-1 h-6 bg-primary rounded-full"></div>
               <ArrowDown className="w-6 h-6 text-primary -mt-1" strokeWidth={3} />
             </div>
           </div>
+          <div className="md:hidden"><VerticalConnector /></div>
 
-          {/* Mobile connector */}
-          <div className="flex justify-center my-6 md:hidden">
-            <div className="flex flex-col items-center">
-              <div className="w-1 h-6 bg-primary rounded-full"></div>
-              <ArrowDown className="w-6 h-6 text-primary -mt-1" strokeWidth={3} />
-            </div>
-          </div>
-
-          {/* Bottom Row: Steps 9, 8, 7, 6 (reversed so flow is 6→7→8→9 from right to left) */}
-          <div className="grid md:grid-cols-4 gap-4 md:ml-[calc(20%+8px)]">
-            {bottomRow.map((step, index) => (
-              <div key={index} className="relative">
-                <div
-                  className={`bg-background rounded-2xl p-4 shadow-lg border ${
-                    step.number === 9 ? "border-green-500 border-2" : "border-border"
-                  } hover:shadow-xl transition-all duration-300 h-full`}
-                >
-                  <div
-                    className={`step-badge mb-3 mx-auto text-sm ${
-                      step.number === 9 ? "!bg-green-500" : ""
-                    }`}
-                  >
-                    {step.number}
-                  </div>
-                  <h3 className="text-sm font-heading font-bold text-center mb-2 text-foreground">
-                    {step.title}
-                  </h3>
-                  <p className="text-muted-foreground text-center text-xs mb-3">
-                    {step.description}
-                  </p>
-                  <div className="text-center">
-                    <span
-                      className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${
-                        step.number === 9
-                          ? "bg-green-500/10 text-green-600"
-                          : "bg-primary/10 text-primary"
-                      }`}
-                    >
-                      {step.date}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Arrows pointing LEFT between cards */}
+          {/* === Row 2: Steps 6 ← 5 ← 4 (displayed as 6, 5, 4 with left arrows) === */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {row2.map((step, index) => (
+              <div key={step.number} className="relative">
+                <StepCard step={step} highlight={step.number === 5 ? "primary" : undefined} />
                 {index > 0 && (
-                  <div className="hidden md:flex absolute top-1/2 -left-4 -translate-y-1/2 z-20 items-center justify-center w-8">
-                    <ArrowRight
-                      className="w-6 h-6 text-primary rotate-180"
-                      strokeWidth={3}
-                    />
+                  <div className="hidden md:flex absolute top-1/2 -left-5 -translate-y-1/2 z-20 items-center justify-center w-10">
+                    <ArrowRight className="w-7 h-7 text-primary rotate-180" strokeWidth={2.5} />
                   </div>
                 )}
               </div>
             ))}
           </div>
+
+          {/* Connector: Row 2 → Row 3 (left side) */}
+          <div className="hidden md:flex justify-start pl-[calc(16.67%-12px)] my-3">
+            <div className="flex flex-col items-center">
+              <div className="w-1 h-6 bg-primary rounded-full"></div>
+              <ArrowDown className="w-6 h-6 text-primary -mt-1" strokeWidth={3} />
+            </div>
+          </div>
+          <div className="md:hidden"><VerticalConnector /></div>
+
+          {/* === Row 3: Steps 7 → 8 → 9 === */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {row3.map((step, index) => (
+              <div key={step.number} className="relative">
+                <StepCard
+                  step={step}
+                  highlight={step.number === 9 ? "green" : undefined}
+                />
+                {index < 2 && (
+                  <div className="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 z-20 items-center justify-center w-10">
+                    <ArrowRight className="w-7 h-7 text-primary" strokeWidth={2.5} />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
         </div>
       </div>
     </section>
