@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -118,34 +118,26 @@ serve(async (req) => {
           }
         }
 
-        // Try inserting into external submissions / team_solutions table
-        // Try "submissions" first, fallback to "team_solutions"
+        // External DB uses team_solutions with registration_id (= teamId like KBT-XXXX)
+        // and different column names than primary submissions table
         const { error: extInsertError } = await otherSupabase
-          .from("submissions")
-          .insert(insertData);
+          .from("team_solutions")
+          .insert({
+            registration_id: teamId,                          // maps to team_registrations.registration_id
+            solution_title: `Solution by ${teamId}`,          // required field
+            solution_description: description?.trim() || "Solution submitted via Avinyathon portal",
+            github_link: "N/A",                               // required field, not collected in our form
+            video_link: youtubeLink.trim(),                   // maps youtube_link -> video_link
+            demo_link: null,
+            presentation_link: null,
+            additional_notes: solutionPdfUrl ? `PDF: ${solutionPdfUrl}` : null,
+            status: "submitted",
+          });
 
         if (extInsertError) {
-          console.error(`❌ External sync (submissions) failed: ${extInsertError.message}`);
-
-          // Fallback: try team_solutions table
-          const { error: fallbackError } = await otherSupabase
-            .from("team_solutions")
-            .insert({
-              team_id: teamId,
-              youtube_link: youtubeLink.trim(),
-              solution_pdf_url: solutionPdfUrl,
-              description: description?.trim() || null,
-              problem_statement_id: problemId || null,
-              status: "pending",
-            });
-
-          if (fallbackError) {
-            console.error(`❌ External sync (team_solutions) also failed: ${fallbackError.message}`);
-          } else {
-            console.log(`✅ External DB synced (team_solutions)`);
-          }
+          console.error(`❌ External sync (team_solutions) failed: ${extInsertError.message}`);
         } else {
-          console.log(`✅ External DB synced (submissions)`);
+          console.log(`✅ External DB synced (team_solutions) for ${teamId}`);
         }
       } catch (syncErr) {
         console.error("❌ External sync failed (non-blocking):", syncErr);
