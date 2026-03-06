@@ -132,27 +132,31 @@ const SubmitSolution = () => {
 
     setIsSubmitting(true);
     try {
-      // Upload PDF to 'solutions' bucket
-      const fileName = `${selectedTeamId}-${Date.now()}.pdf`;
-      const { error: uploadError } = await supabase.storage
-        .from("solutions")
-        .upload(fileName, solutionFile, { contentType: "application/pdf" });
+      // Build FormData to send file + metadata to edge function
+      const formData = new FormData();
+      formData.append("team_id", selectedTeamId);
+      formData.append("youtube_link", youtubeLink.trim());
+      formData.append("description", description.trim() || "");
+      formData.append("problem_id", problemInfo?.id || "");
+      formData.append("solution_file", solutionFile);
 
-      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      // Insert into submissions table
-      const { error: insertError } = await supabase
-        .from("submissions")
-        .insert({
-          team_id: selectedTeamId,
-          description: description.trim() || null,
-          youtube_link: youtubeLink.trim(),
-          solution_pdf_url: fileName,
-          problem_id: problemInfo?.id || null,
-          status: "pending",
-        });
+      const response = await fetch(`${supabaseUrl}/functions/v1/submit-solution`, {
+        method: "POST",
+        headers: {
+          "apikey": supabaseKey,
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: formData,
+      });
 
-      if (insertError) throw new Error(insertError.message);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Submission failed");
+      }
 
       setSubmittedTeamId(selectedTeamId);
       setSubmitted(true);
