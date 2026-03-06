@@ -12,13 +12,28 @@ serve(async (req) => {
   }
 
   try {
-    const formData = await req.formData();
+    let teamId: string;
+    let youtubeLink: string;
+    let description: string | null = null;
+    let problemId: string | null = null;
+    let solutionFile: File | null = null;
 
-    const teamId = formData.get("team_id") as string;
-    const youtubeLink = formData.get("youtube_link") as string;
-    const description = formData.get("description") as string | null;
-    const problemId = formData.get("problem_id") as string | null;
-    const solutionFile = formData.get("solution_file") as File | null;
+    const contentType = req.headers.get("content-type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      teamId = formData.get("team_id") as string;
+      youtubeLink = formData.get("youtube_link") as string;
+      description = formData.get("description") as string | null;
+      problemId = formData.get("problem_id") as string | null;
+      solutionFile = formData.get("solution_file") as File | null;
+    } else {
+      const data = await req.json();
+      teamId = data.team_id;
+      youtubeLink = data.youtube_link;
+      description = data.description || null;
+      problemId = data.problem_id || null;
+    }
 
     if (!teamId || !youtubeLink) {
       return new Response(
