@@ -9,18 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Upload, Send, FileText, Youtube, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
+import { Search, Upload, Send, FileText, Youtube, CheckCircle2, AlertCircle, ArrowRight, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 
-// team_registrations schema (external DB)
 interface TeamInfo {
-  registration_id: string;
+  team_id: string;
   team_name: string;
   leader_name: string;
-  problem_statement_uuid: string | null;
-  problem_statement_title: string | null;
-  domain: string | null;
+  selected_problem_id: string | null;
+  selected_domain: string | null;
 }
 
 interface ProblemInfo {
@@ -57,50 +55,50 @@ const SubmitSolution = () => {
     }
   }, [submitted]);
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const searchTeams = async () => {
     if (!leaderName.trim() || !collegeName.trim() || !instituteNumber.trim()) {
       toast.error("Please fill all fields to search your team");
+      scrollToTop();
       return;
     }
 
     setIsSearching(true);
     setHasSearched(true);
 
-    // Query team_registrations table (external DB schema)
     const { data, error } = await supabase
-      .from("team_registrations")
-      .select("registration_id, team_name, leader_name, problem_statement_uuid, problem_statement_title, domain")
+      .from("registered_teams")
+      .select("team_id, team_name, leader_name, selected_problem_id, selected_domain")
       .ilike("leader_name", `%${leaderName.trim()}%`)
       .ilike("college_name", `%${collegeName.trim()}%`)
       .ilike("institute_number", `%${instituteNumber.trim()}%`);
 
     if (error) {
       toast.error("Search failed", { description: error.message });
+      scrollToTop();
     } else {
       setTeams((data || []) as TeamInfo[]);
       if (!data || data.length === 0) {
         toast.error("No teams found matching your details");
+        scrollToTop();
       }
     }
     setIsSearching(false);
   };
 
-  const selectTeam = async (regId: string) => {
-    setSelectedTeamId(regId);
+  const selectTeam = async (teamId: string) => {
+    setSelectedTeamId(teamId);
     setProblemInfo(null);
-    const team = teams.find((t) => t.registration_id === regId);
+    const team = teams.find((t) => t.team_id === teamId);
 
-    if (team?.problem_statement_title) {
-      setProblemInfo({
-        id: team.problem_statement_uuid || "",
-        problem_title: team.problem_statement_title,
-        domain: team.domain || "",
-      });
-    } else if (team?.problem_statement_uuid) {
+    if (team?.selected_problem_id) {
       const { data } = await supabase
         .from("problem_statements")
         .select("id, problem_title, domain")
-        .eq("id", team.problem_statement_uuid)
+        .eq("id", team.selected_problem_id)
         .maybeSingle();
       if (data) setProblemInfo(data as ProblemInfo);
     }
@@ -127,10 +125,10 @@ const SubmitSolution = () => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedTeamId) { toast.error("Please select your team"); return; }
-    if (!youtubeLink.trim()) { toast.error("YouTube video link is required"); return; }
-    if (!validateYoutubeLink(youtubeLink)) { toast.error("Please enter a valid YouTube link (youtube.com or youtu.be)"); return; }
-    if (!solutionFile) { toast.error("Please upload your solution PDF"); return; }
+    if (!selectedTeamId) { toast.error("Please select your team"); scrollToTop(); return; }
+    if (!youtubeLink.trim()) { toast.error("YouTube video link is required"); scrollToTop(); return; }
+    if (!validateYoutubeLink(youtubeLink)) { toast.error("Please enter a valid YouTube link"); scrollToTop(); return; }
+    if (!solutionFile) { toast.error("Please upload your solution PDF"); scrollToTop(); return; }
 
     setIsSubmitting(true);
     try {
@@ -142,15 +140,16 @@ const SubmitSolution = () => {
 
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-      // Insert into team_solutions (external DB schema)
+      // Insert into submissions table
       const { error: insertError } = await supabase
-        .from("team_solutions")
+        .from("submissions")
         .insert({
-          registration_id: selectedTeamId,
-          solution_description: description.trim() || null,
-          video_link: youtubeLink.trim(),
+          team_id: selectedTeamId,
+          description: description.trim() || null,
+          youtube_link: youtubeLink.trim(),
           solution_pdf_url: fileName,
-          status: "submitted",
+          problem_id: problemInfo?.id || null,
+          status: "pending",
         });
 
       if (insertError) throw new Error(insertError.message);
@@ -160,12 +159,13 @@ const SubmitSolution = () => {
       // scroll happens via useEffect
     } catch (error: any) {
       toast.error("Submission failed", { description: error.message });
+      scrollToTop();
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const selectedTeam = teams.find((t) => t.registration_id === selectedTeamId);
+  const selectedTeam = teams.find((t) => t.team_id === selectedTeamId);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -175,7 +175,7 @@ const SubmitSolution = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
 
-            {/* ── SUCCESS STATE (inline, navbar stays visible) ── */}
+            {/* ── SUCCESS STATE ── */}
             {submitted ? (
               <div className="bg-background rounded-2xl shadow-xl overflow-hidden">
                 <div className="gradient-primary p-6 text-primary-foreground">
@@ -197,7 +197,7 @@ const SubmitSolution = () => {
                     </p>
                   </div>
                   <div className="bg-muted/50 rounded-xl p-4 text-sm space-y-1 text-left max-w-sm mx-auto">
-                    <p className="text-muted-foreground">Team Registration ID</p>
+                    <p className="text-muted-foreground">Team ID</p>
                     <p className="font-bold font-mono text-lg text-primary">{submittedTeamId}</p>
                     <p className="text-xs text-muted-foreground mt-1">Please keep this ID for future reference.</p>
                   </div>
@@ -255,7 +255,7 @@ const SubmitSolution = () => {
                       <div className="space-y-1">
                         <Label className="text-xs">Institute Number *</Label>
                         <Input
-                          placeholder="e.g. KBTCOE"
+                          placeholder="e.g. 123456"
                           value={instituteNumber}
                           onChange={(e) => setInstituteNumber(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && searchTeams()}
@@ -276,8 +276,8 @@ const SubmitSolution = () => {
                           </SelectTrigger>
                           <SelectContent>
                             {teams.map((t) => (
-                              <SelectItem key={t.registration_id} value={t.registration_id}>
-                                {t.registration_id} — {t.team_name} (Leader: {t.leader_name})
+                              <SelectItem key={t.team_id} value={t.team_id}>
+                                {t.team_id} — {t.team_name} (Leader: {t.leader_name})
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -303,7 +303,7 @@ const SubmitSolution = () => {
 
                       {selectedTeam && (
                         <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-1">
-                          <p>Team ID: <span className="font-bold font-mono text-primary">{selectedTeam.registration_id}</span></p>
+                          <p>Team ID: <span className="font-bold font-mono text-primary">{selectedTeam.team_id}</span></p>
                           <p>Team: <span className="font-bold">{selectedTeam.team_name}</span></p>
                           {problemInfo && (
                             <p>Problem: <span className="font-bold">{problemInfo.problem_title}</span>
@@ -315,7 +315,7 @@ const SubmitSolution = () => {
                         </div>
                       )}
 
-                      {/* YouTube Link — FIRST */}
+                      {/* YouTube Link */}
                       <div className="space-y-2">
                         <Label className="flex items-center gap-2 text-base font-semibold">
                           <Youtube className="w-5 h-5 text-red-500" />
@@ -336,14 +336,14 @@ const SubmitSolution = () => {
                         )}
                       </div>
 
-                      {/* PDF Upload — SECOND */}
+                      {/* PDF Upload */}
                       <div className="space-y-2">
                         <Label className="flex items-center gap-2 text-base font-semibold">
                           <FileText className="w-5 h-5 text-primary" />
                           Solution PDF *
                         </Label>
                         <div
-                          className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                          className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all"
                           onClick={() => document.getElementById("solution-pdf-input")?.click()}
                         >
                           <input
@@ -355,16 +355,27 @@ const SubmitSolution = () => {
                           />
                           {solutionFile ? (
                             <div className="space-y-2">
-                              <div className="w-12 h-12 bg-primary/10 rounded-lg mx-auto flex items-center justify-center">
-                                <FileText className="w-6 h-6 text-primary" />
+                              <div className="w-14 h-14 bg-primary/10 rounded-xl mx-auto flex items-center justify-center">
+                                <FileText className="w-7 h-7 text-primary" />
                               </div>
-                              <p className="text-foreground font-medium text-sm">{solutionFile.name}</p>
-                              <p className="text-green-600 text-xs">✓ {(solutionFile.size / 1024 / 1024).toFixed(1)} MB · Click to change</p>
+                              <p className="text-foreground font-semibold text-sm">{solutionFile.name}</p>
+                              <p className="text-green-600 text-xs font-medium">✓ {(solutionFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={(e) => { e.stopPropagation(); setSolutionFile(null); }}
+                              >
+                                <X className="w-4 h-4 mr-1" /> Remove file
+                              </Button>
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <Upload className="w-10 h-10 text-muted-foreground mx-auto" />
-                              <p className="text-muted-foreground text-sm">Click to upload your solution PDF</p>
+                              <div className="w-14 h-14 bg-muted rounded-xl mx-auto flex items-center justify-center">
+                                <Upload className="w-7 h-7 text-muted-foreground" />
+                              </div>
+                              <p className="text-foreground font-medium text-sm">Click to upload your solution PDF</p>
                               <p className="text-muted-foreground text-xs">PDF only · max 50MB</p>
                             </div>
                           )}

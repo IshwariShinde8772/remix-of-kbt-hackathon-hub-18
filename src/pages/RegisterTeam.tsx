@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Shield, Users, FileText, GraduationCap,
-  Plus, Trash2, Mail, Phone, Hash, Building2, User, Copy
+  Plus, Trash2, Mail, Phone, Hash, Building2, User, Copy, Upload
 } from "lucide-react";
 
 interface ProblemStatement {
@@ -525,16 +525,44 @@ const RegisterTeam = () => {
                         </p>
 
                         <div className="flex flex-col items-center gap-3">
-                          <Input
-                            type="file"
-                            accept=".pdf,image/*"
-                            className="max-w-xs"
-                            onChange={(e) => setRegFormFile(e.target.files?.[0] || null)}
-                          />
+                          <div
+                            className="w-full max-w-sm border-2 border-dashed border-primary/30 rounded-xl p-4 cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all text-center"
+                            onClick={() => document.getElementById("reg-form-input")?.click()}
+                          >
+                            <input
+                              id="reg-form-input"
+                              type="file"
+                              accept=".pdf,image/*"
+                              className="hidden"
+                              onChange={(e) => setRegFormFile(e.target.files?.[0] || null)}
+                            />
+                            {regFormFile ? (
+                              <div className="space-y-1">
+                                <div className="w-10 h-10 bg-primary/10 rounded-lg mx-auto flex items-center justify-center">
+                                  <FileText className="w-5 h-5 text-primary" />
+                                </div>
+                                <p className="text-foreground font-semibold text-sm">{regFormFile.name}</p>
+                                <p className="text-green-600 text-xs font-medium">✓ {(regFormFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                                <button
+                                  type="button"
+                                  className="text-destructive text-xs hover:underline mt-1"
+                                  onClick={(e) => { e.stopPropagation(); setRegFormFile(null); }}
+                                >
+                                  Remove file
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
+                                <p className="text-sm font-medium text-foreground">Click to choose file</p>
+                                <p className="text-xs text-muted-foreground">PDF or Image · max 10MB</p>
+                              </div>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">OR</p>
                           <Input
                             placeholder="Enter Google Drive link or other URL"
-                            className="max-w-xs"
+                            className="max-w-sm"
                             value={regFormUrl}
                             onChange={(e) => setRegFormUrl(e.target.value)}
                           />
