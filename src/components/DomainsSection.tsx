@@ -41,7 +41,7 @@ const DomainsSection = () => {
             </p>
 
             <div className="text-center">
-              <Link to="/submit">
+              <Link to="/problems">
                 <Button size="lg" className="gradient-cta text-primary-foreground font-semibold px-8 py-6 text-lg rounded-xl hover:opacity-90 transition-opacity">
                   Start Your Innovation Journey
                 </Button>
