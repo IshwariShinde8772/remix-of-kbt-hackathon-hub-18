@@ -277,7 +277,7 @@ const ProblemStatements = () => {
                     variant="outline"
                     size="sm"
                     disabled={currentPage <= 1}
-                    onClick={() => { setCurrentPage((p) => p - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    onClick={() => { setCurrentPage((p) => p - 1); setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50); }}
                   >
                     <ChevronLeft className="w-4 h-4 mr-1" /> Previous
                   </Button>
