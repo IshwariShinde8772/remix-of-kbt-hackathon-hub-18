@@ -277,7 +277,7 @@ const ProblemStatements = () => {
                     variant="outline"
                     size="sm"
                     disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => p - 1)}
+                    onClick={() => { setCurrentPage((p) => p - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   >
                     <ChevronLeft className="w-4 h-4 mr-1" /> Previous
                   </Button>
@@ -285,7 +285,7 @@ const ProblemStatements = () => {
                     variant="outline"
                     size="sm"
                     disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => p + 1)}
+                    onClick={() => { setCurrentPage((p) => p + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   >
                     Next <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
