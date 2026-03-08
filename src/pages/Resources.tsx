@@ -24,14 +24,14 @@ const resources = [
         description: "Complete rules and regulations document",
         icon: <ScrollText className="w-10 h-10 text-white" />,
         color: "from-accent-foreground to-accent-foreground/80",
-        link: "/mainresources/rules%20hackathon.docx",
+        link: "/mainresources/rules-hackathon.docx",
     },
     {
         title: "Code of Conduct",
         description: "Ethics and behavior guidelines for participants",
         icon: <ShieldCheck className="w-10 h-10 text-white" />,
         color: "from-destructive to-destructive/80",
-        link: "/mainresources/code%20of%20conduct.docx",
+        link: "/mainresources/code-of-conduct.docx",
     },
 ];
 
