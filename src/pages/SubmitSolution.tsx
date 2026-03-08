@@ -179,7 +179,7 @@ const SubmitSolution = () => {
           if (attempt < 2) {
             await new Promise(r => setTimeout(r, 1500));
           }
-        } catch (networkErr) {
+        } catch (_networkErr) {
           lastError = "Network error. Please check your connection.";
           if (attempt < 2) {
             await new Promise(r => setTimeout(r, 1500));
@@ -191,7 +191,7 @@ const SubmitSolution = () => {
         throw new Error(lastError || "Submission failed after retries");
       }
 
-      const result = await response.json();
+      await response.json();
       setSubmittedTeamId(selectedTeamId);
       setSubmitted(true);
     } catch (error: any) {
