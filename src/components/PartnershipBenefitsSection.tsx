@@ -1,12 +1,12 @@
-import { Lightbulb, Users, Award, Target, Shield, HeartHandshake } from "lucide-react";
+import { Trophy, Medal, GraduationCap, Briefcase, FileText, Users } from "lucide-react";
 
 const benefits = [
-  { icon: Lightbulb, title: "Multiple Solution Approaches", description: "Receive diverse solutions from different teams tackling your problem from unique angles." },
-  { icon: Users, title: "Direct Team Interaction", description: "Communicate directly with teams and provide mentorship throughout development." },
-  { icon: Award, title: "Brand Exposure", description: "Featured as a partner throughout the event and in all marketing materials." },
-  { icon: Target, title: "Recruitment Pipeline", description: "Identify and connect with top talent who excel at solving your challenges." },
-  { icon: Shield, title: "IP Rights Protection", description: "Clear intellectual property agreements ensuring solution implementation rights." },
-  { icon: HeartHandshake, title: "Post-Event Support", description: "Continued collaboration opportunities for solution refinement and deployment." },
+  { icon: Trophy, title: "Exciting Prizes & Awards", description: "Win cash prizes, trophies, and special awards for outstanding solutions and innovative ideas." },
+  { icon: Medal, title: "Certificates & Recognition", description: "Receive participation and winner certificates that strengthen your academic and professional profile." },
+  { icon: GraduationCap, title: "Mentorship from Experts", description: "Get guidance from industry mentors and judges throughout the hackathon to refine your solutions." },
+  { icon: Briefcase, title: "Internship & Job Opportunities", description: "Impress sponsors and industry partners to unlock internships, PPOs, and career opportunities." },
+  { icon: FileText, title: "Real Problem Solving Experience", description: "Work on actual industry problem statements and build solutions that can make a real-world impact." },
+  { icon: Users, title: "Networking & Exposure", description: "Connect with students from different colleges, industry professionals, and potential employers." },
 ];
 
 const PartnershipBenefitsSection = () => {
@@ -15,10 +15,10 @@ const PartnershipBenefitsSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-8 md:mb-12">
           <h2 className="text-2xl sm:text-3xl md:text-5xl font-heading font-black mb-3 md:mb-4 text-primary-foreground">
-            Partnership Benefits
+            What's In It For You?
           </h2>
           <p className="text-primary-foreground/80 text-sm md:text-lg">
-            Everything you need to drive innovation and solve complex challenges
+            Participate, innovate, and take home more than just experience
           </p>
         </div>
 
