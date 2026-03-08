@@ -10,9 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Shield, Users, FileText, GraduationCap,
   Plus, Trash2, Mail, Phone, Hash, Building2, User, Copy, Upload
