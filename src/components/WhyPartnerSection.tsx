@@ -75,10 +75,10 @@ const benefits = [
 
 const WhyPartnerSection = () => {
   return (
-    <section id="why-participate" className="py-12 bg-background">
+    <section id="why-participate" className="py-8 md:py-12 bg-background">
       <div className="container mx-auto px-4">
         {/* Badge */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 md:mb-8">
           <span className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-4 py-2 rounded-full text-sm font-medium">
             <Lightbulb className="w-4 h-4" />
             Why Participate
@@ -86,29 +86,26 @@ const WhyPartnerSection = () => {
         </div>
 
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-4xl md:text-5xl font-heading font-black mb-4 text-foreground">
+        <div className="text-center max-w-3xl mx-auto mb-8 md:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-heading font-black mb-3 md:mb-4 text-foreground">
             Why Participate in Avinyathon?
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-sm md:text-lg">
             Avinyathon offers students a unique platform to learn, innovate, and grow through real-world problem solving.
           </p>
         </div>
 
         {/* Benefits Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
           {benefits.map((benefit, index) => (
-            <div
-              key={index}
-              className="feature-card group"
-            >
-              <div className={`w-12 h-12 rounded-xl ${benefit.iconBg} flex items-center justify-center mb-4`}>
-                <benefit.icon className={`w-6 h-6 ${benefit.iconColor}`} />
+            <div key={index} className="feature-card group">
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl ${benefit.iconBg} flex items-center justify-center mb-3 md:mb-4`}>
+                <benefit.icon className={`w-5 h-5 md:w-6 md:h-6 ${benefit.iconColor}`} />
               </div>
-              <h3 className="text-lg font-heading font-bold mb-2 text-foreground">
+              <h3 className="text-sm md:text-lg font-heading font-bold mb-1 md:mb-2 text-foreground">
                 {benefit.title}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 {benefit.description}
               </p>
             </div>
