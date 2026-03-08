@@ -1,0 +1,1 @@
+DELETE FROM registered_teams WHERE leader_email = 'testduplicate@test.com' AND college_name = 'Test Engineering College';
