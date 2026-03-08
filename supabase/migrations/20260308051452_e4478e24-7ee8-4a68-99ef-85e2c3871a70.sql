@@ -1,0 +1,1 @@
+UPDATE registered_teams SET selected_problem_id = NULL WHERE selected_problem_id IS NOT NULL;
