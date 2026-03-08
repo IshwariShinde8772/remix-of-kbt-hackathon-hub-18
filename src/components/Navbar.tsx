@@ -13,7 +13,6 @@ const Navbar = () => {
     { name: "Why Participate", path: "/#why-participate" },
     { name: "Process", path: "/#process" },
     { name: "Problem Statements", path: "/problems" },
-    { name: "Problem Statements", path: "/problems" },
     { name: "Resources", path: "/resources" },
     { name: "Rules", path: "/rules" },
     { name: "Contact Us", path: "/contact" },
