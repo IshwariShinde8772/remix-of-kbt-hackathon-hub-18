@@ -18,9 +18,9 @@ const CTASection = () => {
           </p>
 
           <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/submit">
+            <Link to="/problems">
               <Button size="lg" className="gradient-cta text-primary-foreground font-semibold px-8 py-6 text-lg rounded-xl hover:opacity-90 transition-opacity">
-                Submit Problem Statement
+                View Problem Statements
               </Button>
             </Link>
             <Link to="/contact">

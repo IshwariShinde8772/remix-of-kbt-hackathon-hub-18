@@ -75,9 +75,9 @@ const HeroSection = () => {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Link to="/submit">
+              <Link to="/problems">
                 <Button size="lg" className="gradient-cta text-primary-foreground font-semibold px-8 py-6 text-lg rounded-xl hover:opacity-90 transition-opacity">
-                  Submit Problem Statement
+                  View Problem Statements
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
