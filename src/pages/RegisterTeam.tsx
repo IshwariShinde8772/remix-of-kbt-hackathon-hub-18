@@ -630,11 +630,16 @@ const RegisterTeam = () => {
                     </Button>
                   ) : (
                     <Button
-                      className="gradient-primary text-primary-foreground"
+                      className="gradient-primary text-primary-foreground min-w-[200px]"
                       onClick={handleSubmit}
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? "Submitting..." : (
+                      {isSubmitting ? (
+                        <span className="flex items-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Registering...
+                        </span>
+                      ) : (
                         <><CheckCircle2 className="w-4 h-4 mr-2" /> Submit Registration</>
                       )}
                     </Button>
