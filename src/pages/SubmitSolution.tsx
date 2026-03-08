@@ -125,14 +125,28 @@ const SubmitSolution = () => {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return; // Prevent double-click
     if (!selectedTeamId) { toast.error("Please select your team"); scrollToTop(); return; }
     if (!youtubeLink.trim()) { toast.error("YouTube video link is required"); scrollToTop(); return; }
     if (!validateYoutubeLink(youtubeLink)) { toast.error("Please enter a valid YouTube link"); scrollToTop(); return; }
     if (!solutionFile) { toast.error("Please upload your solution PDF"); scrollToTop(); return; }
 
+    // Check for duplicate submission
+    const { data: existingSubs } = await supabase
+      .from("submissions")
+      .select("id")
+      .eq("team_id", selectedTeamId);
+
+    if (existingSubs && existingSubs.length > 0) {
+      toast.error("Your team has already submitted a solution", {
+        description: "Each team can only submit once. Contact organizers if you need to resubmit.",
+        duration: 8000,
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Build FormData to send file + metadata to edge function
       const formData = new FormData();
       formData.append("team_id", selectedTeamId);
       formData.append("youtube_link", youtubeLink.trim());
@@ -143,26 +157,48 @@ const SubmitSolution = () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/submit-solution`, {
-        method: "POST",
-        headers: {
-          "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
-        },
-        body: formData,
-      });
+      let response = null;
+      let lastError = "";
 
-      const result = await response.json();
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          response = await fetch(`${supabaseUrl}/functions/v1/submit-solution`, {
+            method: "POST",
+            headers: {
+              "apikey": supabaseKey,
+              "Authorization": `Bearer ${supabaseKey}`,
+            },
+            body: formData,
+          });
 
-      if (!response.ok) {
-        throw new Error(result.error || "Submission failed");
+          if (response.ok) break;
+
+          const errResult = await response.json();
+          lastError = errResult.error || "Submission failed";
+
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 1500));
+          }
+        } catch (_networkErr) {
+          lastError = "Network error. Please check your connection.";
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 1500));
+          }
+        }
       }
 
+      if (!response || !response.ok) {
+        throw new Error(lastError || "Submission failed after retries");
+      }
+
+      await response.json();
       setSubmittedTeamId(selectedTeamId);
       setSubmitted(true);
-      // scroll happens via useEffect
     } catch (error: any) {
-      toast.error("Submission failed", { description: error.message });
+      toast.error("Submission failed", {
+        description: error.message || "Please check your connection and try again.",
+        duration: 6000,
+      });
       scrollToTop();
     } finally {
       setIsSubmitting(false);
@@ -398,11 +434,16 @@ const SubmitSolution = () => {
                       </div>
 
                       <Button
-                        className="w-full gradient-primary text-primary-foreground font-semibold py-6 text-base"
+                        className="w-full gradient-primary text-primary-foreground font-semibold py-6 text-base min-h-[52px]"
                         onClick={handleSubmit}
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? "Submitting..." : (
+                        {isSubmitting ? (
+                          <span className="flex items-center gap-2">
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Submitting...
+                          </span>
+                        ) : (
                           <><Send className="w-4 h-4 mr-2" /> Submit Solution</>
                         )}
                       </Button>
