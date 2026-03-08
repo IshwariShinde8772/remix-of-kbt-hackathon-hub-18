@@ -13,10 +13,10 @@ const domains = [
 
 const ProblemStatementsPreview = () => {
   return (
-    <section id="problem-statements" className="py-16 bg-muted/30">
+    <section id="problem-statements" className="py-10 md:py-16 bg-muted/30">
       <div className="container mx-auto px-4">
         {/* Badge */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-4 md:mb-6">
           <span className="inline-flex items-center gap-2 bg-background border border-border text-foreground px-4 py-2 rounded-full text-sm font-medium">
             <FileSearch className="w-4 h-4 text-primary" />
             Problem Statements
@@ -24,41 +24,41 @@ const ProblemStatementsPreview = () => {
         </div>
 
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <h2 className="text-3xl md:text-4xl font-heading font-black mb-3 text-foreground">
+        <div className="text-center max-w-2xl mx-auto mb-8 md:mb-10">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black mb-3 text-foreground">
             Explore Problem Statements
           </h2>
-          <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
-            Browse real-world challenges from leading industries and organizations. 
+          <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed">
+            Browse real-world challenges from leading industries and organizations.
             Pick a problem that matches your skills and build an innovative solution.
           </p>
         </div>
 
-        {/* Domain Cards - responsive grid */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-5 max-w-3xl mx-auto mb-10">
+        {/* Domain Cards */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-5 max-w-3xl mx-auto mb-8 md:mb-10">
           {domains.map((domain) => (
             <div
               key={domain.name}
-              className={`${domain.bg} rounded-2xl p-3 md:p-5 text-center transition-all duration-300 hover:scale-105 hover:shadow-md flex flex-col items-center justify-center aspect-square`}
+              className={`${domain.bg} rounded-xl md:rounded-2xl p-3 md:p-5 text-center transition-all duration-300 hover:scale-105 hover:shadow-md flex flex-col items-center justify-center aspect-square`}
             >
-              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${domain.color} flex items-center justify-center mb-2 md:mb-3 shadow-sm`}>
-                <domain.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+              <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br ${domain.color} flex items-center justify-center mb-2 md:mb-3 shadow-sm`}>
+                <domain.icon className="w-4 h-4 md:w-6 md:h-6 text-white" />
               </div>
-              <p className="text-xs md:text-sm font-bold text-foreground leading-tight">{domain.name}</p>
+              <p className="text-[10px] md:text-sm font-bold text-foreground leading-tight">{domain.name}</p>
             </div>
           ))}
         </div>
 
-        {/* Description + CTA */}
-        <div className="text-center max-w-xl mx-auto space-y-5">
-          <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
-            Each problem is submitted by an industry partner and reviewed before publishing. 
+        {/* CTA */}
+        <div className="text-center max-w-xl mx-auto space-y-4 md:space-y-5">
+          <p className="text-muted-foreground text-xs md:text-base leading-relaxed">
+            Each problem is submitted by an industry partner and reviewed before publishing.
             Choose your domain, study the challenge, and register your team to start solving.
           </p>
           <Link to="/problems">
-            <Button size="lg" className="gradient-primary text-primary-foreground font-bold px-8 py-6 text-base md:text-lg gap-2 mt-2">
+            <Button size="lg" className="gradient-primary text-primary-foreground font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-lg gap-2 mt-2">
               View All Problem Statements
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
             </Button>
           </Link>
         </div>

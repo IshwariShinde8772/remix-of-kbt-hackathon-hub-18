@@ -25,23 +25,15 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
-  // Scroll to element with offset so user sees partial next section
   const scrollToElementWithOffset = (element: HTMLElement) => {
     const navbarHeight = 60;
     const viewportHeight = window.innerHeight;
     const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-    // Position element so user can see there's more content below (show ~70% of viewport)
     const offsetPosition = elementPosition - navbarHeight - (viewportHeight * 0.15);
-
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: "smooth"
-    });
+    window.scrollTo({ top: offsetPosition, behavior: "smooth" });
   };
 
-  // Handle hash scrolling after navigation - only for hash links, not initial page load
   useEffect(() => {
-    // Only scroll to hash if it was a navigation event (not initial load)
     if (location.hash && location.key !== "default") {
       const id = location.hash.replace("#", "");
       setTimeout(() => {
@@ -53,33 +45,33 @@ const Navbar = () => {
     }
   }, [location.hash, location.key]);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
+
   const handleNavClick = (path: string, e: React.MouseEvent) => {
     setIsOpen(false);
 
-    // Handle Home link - scroll to top
     if (path === "/") {
       e.preventDefault();
       if (location.pathname === "/") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
-      // Use navigate to properly update React Router state and clear hash
       navigate("/", { replace: true });
       return;
     }
 
     if (path.includes("#")) {
       const id = path.split("#")[1];
-      // If we're on the home page, prevent default and scroll
       if (location.pathname === "/") {
         e.preventDefault();
         const element = document.getElementById(id);
         if (element) {
           scrollToElementWithOffset(element);
-          // Use navigate to properly update React Router state
           navigate(path, { replace: true });
         }
       }
-      // If not on home page, let the Link navigate (useEffect will handle scroll)
     }
   };
 
@@ -89,8 +81,9 @@ const Navbar = () => {
         <div className="flex items-center justify-center py-3">
           {/* Mobile menu button */}
           <button
-            className="md:hidden absolute left-4 text-secondary-foreground"
+            className="md:hidden absolute left-4 text-secondary-foreground p-1"
             onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle menu"
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -102,8 +95,7 @@ const Navbar = () => {
                 key={item.name}
                 to={item.path}
                 onClick={(e) => handleNavClick(item.path, e)}
-                className={`nav-link ${isActive(item.path) ? "nav-link-active" : ""
-                  }`}
+                className={`nav-link ${isActive(item.path) ? "nav-link-active" : ""}`}
               >
                 {item.name}
               </Link>
@@ -119,32 +111,38 @@ const Navbar = () => {
               </Button>
             </Link>
           </div>
+
+          {/* Mobile: Show title */}
+          <span className="md:hidden text-secondary-foreground font-heading font-bold text-sm">
+            KBT Avinyathon
+          </span>
         </div>
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden pb-4 space-y-2">
+          <div className="md:hidden pb-4 space-y-1 border-t border-secondary-foreground/20 pt-3">
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}
                 onClick={(e) => handleNavClick(item.path, e)}
-                className={`block nav-link ${isActive(item.path) ? "nav-link-active" : ""
-                  }`}
+                className={`block nav-link text-sm ${isActive(item.path) ? "nav-link-active" : ""}`}
               >
                 {item.name}
               </Link>
             ))}
-            <Link to="/register" onClick={() => setIsOpen(false)}>
-              <Button className="w-full gradient-primary text-primary-foreground mb-2">
-                Register Team
-              </Button>
-            </Link>
-            <Link to="/submit-solution" onClick={() => setIsOpen(false)}>
-              <Button className="w-full gradient-cta text-primary-foreground">
-                Submit Solution
-              </Button>
-            </Link>
+            <div className="pt-2 space-y-2">
+              <Link to="/register" onClick={() => setIsOpen(false)}>
+                <Button className="w-full gradient-primary text-primary-foreground text-sm">
+                  Register Team
+                </Button>
+              </Link>
+              <Link to="/submit-solution" onClick={() => setIsOpen(false)}>
+                <Button className="w-full gradient-cta text-primary-foreground text-sm">
+                  Submit Solution
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
       </div>
