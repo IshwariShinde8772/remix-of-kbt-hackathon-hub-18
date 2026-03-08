@@ -1,0 +1,3 @@
+UPDATE problem_statements SET problem_title = 'Low Speed Friction Based Grinding' WHERE id = '3a37c00b-2448-4a9d-b604-d5d497f6728a';
+UPDATE problem_statements SET targeted_audience = 'Any pharmaceutical industry, and personal use' WHERE id = '3a37c00b-2448-4a9d-b604-d5d497f6728a';
+UPDATE problem_statements SET targeted_audience = 'Fashion waste management' WHERE id = '86b9f492-fbb2-48cb-92d7-94e2ce062a51';

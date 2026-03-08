@@ -12,7 +12,7 @@ const Navbar = () => {
     { name: "Home", path: "/" },
     { name: "Why Participate", path: "/#why-participate" },
     { name: "Process", path: "/#process" },
-    { name: "Sponsorship", path: "/#sponsorship" },
+    { name: "Problem Statements", path: "/problems" },
     { name: "Problem Statements", path: "/problems" },
     { name: "Resources", path: "/resources" },
     { name: "Rules", path: "/rules" },
