@@ -10,7 +10,6 @@ import RegisterTeam from "./pages/RegisterTeam";
 import SubmitSolution from "./pages/SubmitSolution";
 import Resources from "./pages/Resources";
 import ContactUs from "./pages/ContactUs";
-import ContactUs from "./pages/ContactUs";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
 
