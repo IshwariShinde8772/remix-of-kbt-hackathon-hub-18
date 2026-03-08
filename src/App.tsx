@@ -9,7 +9,7 @@ import ProblemStatements from "./pages/ProblemStatements";
 import RegisterTeam from "./pages/RegisterTeam";
 import SubmitSolution from "./pages/SubmitSolution";
 import Resources from "./pages/Resources";
-import Rules from "./pages/Rules";
+import ContactUs from "./pages/ContactUs";
 import ContactUs from "./pages/ContactUs";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
