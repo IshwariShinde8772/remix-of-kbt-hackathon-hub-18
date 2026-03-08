@@ -15,7 +15,6 @@ const Navbar = () => {
     { name: "Problem Statements", path: "/problems" },
     { name: "Resources", path: "/resources" },
     { name: "Contact Us", path: "/contact" },
-    { name: "Contact Us", path: "/contact" },
   ];
 
   const isActive = (path: string) => {
