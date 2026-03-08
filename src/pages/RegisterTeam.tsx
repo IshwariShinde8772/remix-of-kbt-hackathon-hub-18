@@ -653,44 +653,44 @@ const RegisterTeam = () => {
 
       {/* Success Dialog */}
       <Dialog open={!!successData} onOpenChange={(open) => { if (!open) { setSuccessData(null); navigate("/"); } }}>
-        <DialogContent className="sm:max-w-md text-center">
-          <DialogHeader className="items-center">
-            <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mx-auto mb-2">
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center text-center w-full">
+            <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-primary-foreground" />
             </div>
-            <DialogTitle className="text-2xl font-heading">Registration Successful! 🎉</DialogTitle>
-            <DialogDescription className="text-base mt-2">
+            <h2 className="text-2xl font-heading font-bold">Registration Successful! 🎉</h2>
+            <p className="text-base text-muted-foreground mt-2 max-w-xs mx-auto">
               Your team has been registered. Use the Team ID below to submit your solution.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="my-4 p-4 bg-muted rounded-xl border border-border">
-            <p className="text-sm text-muted-foreground mb-1">Your Team ID</p>
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-3xl font-heading font-bold text-primary tracking-wider">
-                {successData?.teamId}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(successData?.teamId || "");
-                  toast.success("Team ID copied!");
-                }}
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              A confirmation has been sent to <span className="font-semibold">{successData?.email}</span>
             </p>
-          </div>
 
-          <DialogFooter className="sm:justify-center">
-            <Button className="gradient-primary text-primary-foreground px-8" onClick={() => { setSuccessData(null); navigate("/"); }}>
+            <div className="w-full my-6 p-5 bg-muted rounded-xl border border-border">
+              <p className="text-sm text-muted-foreground mb-2">Your Team ID</p>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-3xl font-heading font-bold text-primary tracking-widest">
+                  {successData?.teamId}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(successData?.teamId || "");
+                    toast.success("Team ID copied!");
+                  }}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                A confirmation has been sent to{" "}
+                <span className="font-semibold break-all">{successData?.email}</span>
+              </p>
+            </div>
+
+            <Button className="gradient-primary text-primary-foreground px-8 w-full sm:w-auto" onClick={() => { setSuccessData(null); navigate("/"); }}>
               Go to Home
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
