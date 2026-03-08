@@ -9,7 +9,6 @@ import ProblemStatements from "./pages/ProblemStatements";
 import RegisterTeam from "./pages/RegisterTeam";
 import SubmitSolution from "./pages/SubmitSolution";
 import Resources from "./pages/Resources";
-import Rules from "./pages/Rules";
 import ContactUs from "./pages/ContactUs";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
@@ -30,7 +29,7 @@ const App = () => (
           <Route path="/register" element={<RegisterTeam />} />
           <Route path="/submit-solution" element={<SubmitSolution />} />
           <Route path="/submit" element={<SubmitProblem />} />
-          <Route path="/rules" element={<Rules />} />
+          <Route path="/contact" element={<ContactUs />} />
           <Route path="/contact" element={<ContactUs />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
