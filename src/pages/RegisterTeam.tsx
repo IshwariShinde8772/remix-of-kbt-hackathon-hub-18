@@ -651,26 +651,26 @@ const RegisterTeam = () => {
 
       {/* Success Dialog */}
       <Dialog open={!!successData} onOpenChange={(open) => { if (!open) { setSuccessData(null); navigate("/"); } }}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex flex-col items-center text-center w-full">
-            <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-primary-foreground" />
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md mx-auto p-4 sm:p-6">
+          <div className="flex flex-col items-center text-center w-full gap-1">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full gradient-primary flex items-center justify-center mb-2 sm:mb-4 shrink-0">
+              <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-primary-foreground" />
             </div>
-            <h2 className="text-2xl font-heading font-bold">Registration Successful! 🎉</h2>
-            <p className="text-base text-muted-foreground mt-2 max-w-xs mx-auto">
+            <h2 className="text-xl sm:text-2xl font-heading font-bold leading-tight">Registration Successful! 🎉</h2>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2 leading-relaxed px-2">
               Your team has been registered. Use the Team ID below to submit your solution.
             </p>
 
-            <div className="w-full my-6 p-5 bg-muted rounded-xl border border-border">
-              <p className="text-sm text-muted-foreground mb-2">Your Team ID</p>
+            <div className="w-full my-4 sm:my-6 p-4 sm:p-5 bg-muted rounded-xl border border-border">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2">Your Team ID</p>
               <div className="flex items-center justify-center gap-2">
-                <span className="text-3xl font-heading font-bold text-primary tracking-widest">
+                <span className="text-2xl sm:text-3xl font-heading font-bold text-primary tracking-widest">
                   {successData?.teamId}
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 shrink-0"
                   onClick={() => {
                     navigator.clipboard.writeText(successData?.teamId || "");
                     toast.success("Team ID copied!");
@@ -679,13 +679,13 @@ const RegisterTeam = () => {
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-3">
+              <p className="text-xs text-muted-foreground mt-2 sm:mt-3 leading-relaxed">
                 A confirmation has been sent to{" "}
                 <span className="font-semibold break-all">{successData?.email}</span>
               </p>
             </div>
 
-            <Button className="gradient-primary text-primary-foreground px-8 w-full sm:w-auto" onClick={() => { setSuccessData(null); navigate("/"); }}>
+            <Button className="gradient-primary text-primary-foreground px-8 w-full" onClick={() => { setSuccessData(null); navigate("/"); }}>
               Go to Home
             </Button>
           </div>
