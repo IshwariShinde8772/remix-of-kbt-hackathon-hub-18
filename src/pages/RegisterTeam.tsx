@@ -179,9 +179,26 @@ const RegisterTeam = () => {
 
   const handleSubmit = async () => {
     if (!validateStep(4)) return;
+    if (isSubmitting) return; // Prevent double-click
     setIsSubmitting(true);
 
     try {
+      // Check for duplicate registration (same leader email + college)
+      const { data: existingTeams } = await supabase
+        .from("registered_teams")
+        .select("team_id")
+        .ilike("leader_email", leaderEmail.trim())
+        .ilike("college_name", collegeName.trim());
+
+      if (existingTeams && existingTeams.length > 0) {
+        toast.error("A team with this leader email from this college is already registered", {
+          description: `Existing Team ID: ${existingTeams[0].team_id}`,
+          duration: 8000,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       let primaryFormUrl = regFormUrl;
 
       // Enable dual upload to storage
@@ -190,14 +207,13 @@ const RegisterTeam = () => {
         const fileName = `${teamName.replace(/\s+/g, '_')}_${Date.now()}.${fileExt}`;
         const filePath = fileName;
 
-        // 1. Upload to PRIMARY Supabase
         const { error: primaryUploadError } = await supabase.storage
           .from('registration-forms')
           .upload(filePath, regFormFile);
 
         if (primaryUploadError) {
           console.error("Primary upload error:", primaryUploadError);
-          throw new Error("Primary file upload failed: " + primaryUploadError.message);
+          throw new Error("File upload failed. Please try again.");
         }
 
         const { data: { publicUrl: primaryPublicUrl } } = supabase.storage
@@ -206,33 +222,48 @@ const RegisterTeam = () => {
         primaryFormUrl = primaryPublicUrl;
       }
 
-      // 3. Invoke Edge Function (Primary Registration)
-      const { data: result, error } = await supabase.functions.invoke("register-team", {
-        body: {
-          team_name: teamName,
-          college_name: collegeName,
-          institute_number: instituteNumber,
-          leader_name: leaderName,
-          leader_email: leaderEmail,
-          leader_phone: leaderPhone,
-          members,
-          selected_problem_id: selectedProblemId,
-          selected_domain: selectedDomain,
-          problem_title: selectedProblem?.problem_title || "",
-          approach_description: selectedProblem?.problem_description || "",
-          mentor_name: mentorName,
-          mentor_email: mentorEmail,
-          mentor_contact: mentorContact,
-          registration_form_url: primaryFormUrl || regFormUrl,
-        },
-      });
+      // Invoke Edge Function with retry
+      let result = null;
+      let lastError = null;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const { data, error } = await supabase.functions.invoke("register-team", {
+          body: {
+            team_name: teamName,
+            college_name: collegeName,
+            institute_number: instituteNumber,
+            leader_name: leaderName,
+            leader_email: leaderEmail,
+            leader_phone: leaderPhone,
+            members,
+            selected_problem_id: selectedProblemId,
+            selected_domain: selectedDomain,
+            problem_title: selectedProblem?.problem_title || "",
+            approach_description: selectedProblem?.problem_description || "",
+            mentor_name: mentorName,
+            mentor_email: mentorEmail,
+            mentor_contact: mentorContact,
+            registration_form_url: primaryFormUrl || regFormUrl,
+          },
+        });
 
-      if (error) throw new Error(error.message || "Registration failed");
-      if (result?.error) throw new Error(result.error);
+        if (!error && data && !data.error) {
+          result = data;
+          break;
+        }
+        lastError = error?.message || data?.error || "Registration failed";
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 1500)); // Wait before retry
+        }
+      }
+
+      if (!result) throw new Error(lastError || "Registration failed after retries. Please try again.");
 
       setSuccessData({ teamId: result.team_id, email: leaderEmail });
     } catch (error: any) {
-      toast.error("Registration failed", { description: error.message });
+      toast.error("Registration failed", {
+        description: error.message || "Please check your connection and try again.",
+        duration: 6000,
+      });
     } finally {
       setIsSubmitting(false);
     }
