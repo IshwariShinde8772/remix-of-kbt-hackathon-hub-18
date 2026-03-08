@@ -434,11 +434,16 @@ const SubmitSolution = () => {
                       </div>
 
                       <Button
-                        className="w-full gradient-primary text-primary-foreground font-semibold py-6 text-base"
+                        className="w-full gradient-primary text-primary-foreground font-semibold py-6 text-base min-h-[52px]"
                         onClick={handleSubmit}
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? "Submitting..." : (
+                        {isSubmitting ? (
+                          <span className="flex items-center gap-2">
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Submitting...
+                          </span>
+                        ) : (
                           <><Send className="w-4 h-4 mr-2" /> Submit Solution</>
                         )}
                       </Button>
