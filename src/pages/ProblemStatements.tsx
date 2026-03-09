@@ -50,6 +50,14 @@ const DOMAIN_COLORS: Record<string, string> = {
 const COMPANY_WEBSITES: Record<string, string> = {
   "Neelay Industries": "https://www.neelaygroup.com/about.php",
   "Aerogravity Pvt Ltd": "https://nxtqube.com/",
+  "Chemito Infotech": "https://www.chemitoinfotech.com/",
+};
+
+// Local resource files mapped to specific problem titles
+const LOCAL_RESOURCES: Record<string, { label: string; url: string }[]> = {
+  "Development of fixture for control panel assembly": [
+    { label: "Control Panel Frame Reference", url: "/resources/Control_Panel_Frame.png" },
+  ],
 };
 
 const ITEMS_PER_PAGE = 10;
