@@ -58,6 +58,18 @@ const LOCAL_RESOURCES: Record<string, { label: string; url: string }[]> = {
   "Development of fixture for control panel assembly": [
     { label: "Control Panel Frame Reference", url: "/resources/Control_Panel_Frame.png" },
   ],
+  "Set-up for accurate position of central cylinder of calendar unit of plastic sheet extrusion machine": [
+    { label: "Avani Resource", url: "/resources/avani/avani_resource.jpg" },
+  ],
+  "Design and fabrication of set-up for manufacturing of locking pin and washer": [
+    { label: "Pentas Insulation (Design)", url: "/resources/pentas/Pentas Insulation (Design).pdf" },
+  ],
+  "Temperature distribution of composite wall using CFD": [
+    { label: "Pentas Insulation (Temperature)", url: "/resources/pentas/Pentas Insulation (Temperature).pdf" },
+  ],
+  "Real-time Payment Management, Inventory management and respective Invoice generation customised for construction management": [
+    { label: "Samarth Developers Resource", url: "/resources/samarth/Samarth developers.pdf" },
+  ],
 };
 
 const ITEMS_PER_PAGE = 10;
