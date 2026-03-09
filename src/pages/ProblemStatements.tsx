@@ -48,9 +48,9 @@ const DOMAIN_COLORS: Record<string, string> = {
 };
 
 const COMPANY_WEBSITES: Record<string, string> = {
-  "Neelay Industries": "https://www.neelaygroup.com/about.php",
-  "Aerogravity Pvt Ltd": "https://nxtqube.com/",
-  "Chemito Infotech": "https://www.chemitoinfotech.com/",
+  "Neelay Industries Ltd": "https://www.neelaygroup.com/about.php",
+  "Aerogravity Pvt Ltd (NxtQube)": "https://nxtqube.com/",
+  "Chemito Infotech Pvt Ltd": "https://www.chemitoinfotech.com/",
 };
 
 // Local resource files mapped to specific problem titles
