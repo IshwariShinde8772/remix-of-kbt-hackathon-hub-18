@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 interface ProblemStatement {
   id: string;
   company_name: string;
+  company_website: string | null;
   problem_title: string;
   problem_description: string;
   domain: string;
