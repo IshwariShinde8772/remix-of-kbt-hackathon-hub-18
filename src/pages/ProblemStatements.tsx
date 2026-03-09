@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 interface ProblemStatement {
   id: string;
   company_name: string;
+  company_website: string | null;
   problem_title: string;
   problem_description: string;
   domain: string;
@@ -49,6 +50,14 @@ const DOMAIN_COLORS: Record<string, string> = {
 const COMPANY_WEBSITES: Record<string, string> = {
   "Neelay Industries": "https://www.neelaygroup.com/about.php",
   "Aerogravity Pvt Ltd": "https://nxtqube.com/",
+  "Chemito Infotech": "https://www.chemitoinfotech.com/",
+};
+
+// Local resource files mapped to specific problem titles
+const LOCAL_RESOURCES: Record<string, { label: string; url: string }[]> = {
+  "Development of fixture for control panel assembly": [
+    { label: "Control Panel Frame Reference", url: "/resources/Control_Panel_Frame.png" },
+  ],
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -318,19 +327,22 @@ const ProblemStatements = () => {
                     <tr>
                       <td className="py-3 pr-4 font-semibold text-sm">Organization</td>
                       <td className="py-3 text-sm">
-                        {COMPANY_WEBSITES[selectedWithId.company_name] ? (
-                          <a
-                            href={COMPANY_WEBSITES[selectedWithId.company_name]}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline flex items-center gap-1 w-fit"
-                          >
-                            {selectedWithId.company_name}
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        ) : (
-                          selectedWithId.company_name
-                        )}
+                        {(() => {
+                          const websiteUrl = selectedWithId.company_website || COMPANY_WEBSITES[selectedWithId.company_name];
+                          return websiteUrl ? (
+                            <a
+                              href={websiteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1 w-fit"
+                            >
+                              {selectedWithId.company_name}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            selectedWithId.company_name
+                          );
+                        })()}
                       </td>
                     </tr>
                     <tr><td className="py-3 pr-4 font-semibold text-sm">Domain / Category</td><td className="py-3 text-sm">{selectedWithId.domain}</td></tr>
@@ -353,6 +365,29 @@ const ProblemStatements = () => {
                             <ExternalLink className="w-4 h-4 mr-2" />
                             View / Download Resource File
                           </Button>
+                        </td>
+                      </tr>
+                    )}
+                    {LOCAL_RESOURCES[selectedWithId.problem_title] && (
+                      <tr>
+                        <td className="py-3 pr-4 font-semibold text-sm">Reference Resources</td>
+                        <td className="py-3">
+                          <div className="flex flex-col gap-2">
+                            {LOCAL_RESOURCES[selectedWithId.problem_title].map((res, idx) => (
+                              <a
+                                key={idx}
+                                href={res.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2"
+                              >
+                                <Button variant="outline" size="sm" className="text-primary">
+                                  <ExternalLink className="w-4 h-4 mr-2" />
+                                  {res.label}
+                                </Button>
+                              </a>
+                            ))}
+                          </div>
                         </td>
                       </tr>
                     )}
