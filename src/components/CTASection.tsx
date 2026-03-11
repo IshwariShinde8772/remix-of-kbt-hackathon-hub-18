@@ -10,10 +10,10 @@ const CTASection = () => {
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center max-w-2xl mx-auto">
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-heading font-black mb-4 text-foreground leading-tight">
-            Ready to Find Innovative Solutions?
+            Ready to Build Something Impactful?
           </h2>
           <p className="text-muted-foreground text-sm md:text-base lg:text-lg mb-8 leading-relaxed">
-            Join leading companies leveraging KBT-AVINYATHON to drive innovation and solve complex challenges.
+            Join thousands of students from across Maharashtra tackling real industry problems at KBT-AVINYATHON 2026.
           </p>
 
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">

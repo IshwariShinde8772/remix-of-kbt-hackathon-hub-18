@@ -23,14 +23,14 @@ const resources = [
         title: "Hackathon Rulebook",
         description: "Complete rules and regulations document",
         icon: <ScrollText className="w-10 h-10 text-white" />,
-        color: "from-accent-foreground to-accent-foreground/80",
+        color: "from-secondary to-secondary/80",
         link: "/mainresources/rules-hackathon.docx",
     },
     {
         title: "Code of Conduct",
         description: "Ethics and behavior guidelines for participants",
         icon: <ShieldCheck className="w-10 h-10 text-white" />,
-        color: "from-destructive to-destructive/80",
+        color: "from-primary/80 to-secondary/60",
         link: "/mainresources/code-of-conduct.docx",
     },
 ];
@@ -41,7 +41,7 @@ const Resources = () => {
             <Header />
             <Navbar />
 
-            <main className="flex-grow py-12 md:py-24 bg-gradient-to-b from-muted/30 to-background">
+            <main className="flex-grow py-10 md:py-16 bg-gradient-to-b from-muted/30 to-background">
                 <div className="container mx-auto px-4 max-w-7xl">
                     {/* Header Section */}
                     <div className="text-center mb-16 animate-fade-in">

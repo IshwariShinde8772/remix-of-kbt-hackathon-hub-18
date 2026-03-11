@@ -35,7 +35,7 @@ const ContactUs = () => {
             Contact Us
           </h1>
           <p className="text-muted-foreground text-center mb-10 text-lg">
-            Reach out to our team for partnership and event inquiries
+            Have questions about registration, problem statements, or event details? We're here to help.
           </p>
 
           <div className="grid gap-6 md:grid-cols-3 mb-12">
