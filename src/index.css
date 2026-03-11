@@ -144,9 +144,7 @@
     background-clip: text;
   }
 
-  .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-lg;
-  }
+  /* glass-card moved below */
 
   .benefit-card {
     @apply bg-gradient-to-br from-secondary/90 to-primary/80 text-white rounded-2xl p-6 backdrop-blur-sm border border-white/10;
