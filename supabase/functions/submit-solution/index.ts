@@ -54,13 +54,25 @@ serve(async (req) => {
 
     const primarySupabase = createClient(primaryUrl, primaryKey);
 
-    // ── Upload PDF to primary storage ──
-    let solutionPdfUrl = "";
-    let fileBuffer: ArrayBuffer | null = null;
+    // ── Check if Team ID exists first ──
+    const { data: teamCheck } = await primarySupabase
+      .from("team_registrations")
+      .select("registration_id")
+      .eq("registration_id", teamId)
+      .maybeSingle();
 
+    if (!teamCheck) {
+      return new Response(
+        JSON.stringify({ error: `Team ID "${teamId}" not found. Please register first.` }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Upload PDF ──
+    let solutionPdfUrl = "";
     if (solutionFile) {
       const fileName = `${teamId}-${Date.now()}.pdf`;
-      fileBuffer = await solutionFile.arrayBuffer();
+      const fileBuffer = await solutionFile.arrayBuffer();
 
       const { error: uploadError } = await primarySupabase.storage
         .from("solutions")
@@ -70,96 +82,43 @@ serve(async (req) => {
         });
 
       if (uploadError) {
-        console.error("❌ Primary storage upload failed:", uploadError.message);
+        console.error("❌ Storage upload failed:", uploadError.message);
         return new Response(
           JSON.stringify({ error: `Upload failed: ${uploadError.message}` }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
       solutionPdfUrl = fileName;
-      console.log(`✅ PDF uploaded to primary storage: ${fileName}`);
+      console.log(`✅ PDF uploaded: ${fileName}`);
     }
 
-    // ── Insert into primary submissions table ──
+    // ── Insert into team_solutions ──
     const insertData = {
-      team_id: teamId,
-      youtube_link: youtubeLink.trim(),
+      registration_id: teamId,
+      solution_title: `Solution by ${teamId}`,
+      solution_description: description?.trim() || "Solution submitted via Avinyathon portal",
+      github_link: "N/A",
+      video_link: youtubeLink.trim(),
+      additional_notes: solutionPdfUrl ? `PDF: ${solutionPdfUrl}` : null,
       solution_pdf_url: solutionPdfUrl,
-      description: description?.trim() || null,
-      problem_id: problemId || null,
-      status: "pending",
+      status: "submitted",
     };
 
     const { data: primaryResult, error: primaryError } = await primarySupabase
-      .from("submissions")
+      .from("team_solutions")
       .insert(insertData)
-      .select("id, team_id")
+      .select("id")
       .maybeSingle();
 
     if (primaryError) {
-      console.error("❌ Primary DB insert error:", primaryError.message);
+      console.error("❌ DB insert error:", primaryError.message);
       return new Response(
         JSON.stringify({ error: primaryError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`✅ Primary DB saved: submission ${primaryResult?.id} for team ${teamId}`);
-
-    // ── Dual Sync to External Database ──
-    const LovableUrl = "https://wunqjksrgdppzcucwcyd.supabase.co";
-    const ExternalUrl = "https://lxawemydhhmqjahttrlb.supabase.co";
-    const otherUrl = (primaryUrl === ExternalUrl) ? LovableUrl : ExternalUrl;
-    const externalKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
-
-    if (externalKey) {
-      try {
-        const otherSupabase = createClient(otherUrl, externalKey);
-
-        // Upload PDF to external storage
-        if (fileBuffer && solutionPdfUrl) {
-          const { error: extUploadError } = await otherSupabase.storage
-            .from("solutions")
-            .upload(solutionPdfUrl, fileBuffer, {
-              contentType: "application/pdf",
-              upsert: false,
-            });
-
-          if (extUploadError) {
-            console.error("❌ External storage upload failed (non-blocking):", extUploadError.message);
-          } else {
-            console.log(`✅ PDF synced to external storage: ${solutionPdfUrl}`);
-          }
-        }
-
-        // External DB uses team_solutions with registration_id (= teamId like KBT-XXXX)
-        // and different column names than primary submissions table
-        const { error: extInsertError } = await otherSupabase
-          .from("team_solutions")
-          .insert({
-            registration_id: teamId,                          // maps to team_registrations.registration_id
-            solution_title: `Solution by ${teamId}`,          // required field
-            solution_description: description?.trim() || "Solution submitted via Avinyathon portal",
-            github_link: "N/A",                               // required field, not collected in our form
-            video_link: youtubeLink.trim(),                   // maps youtube_link -> video_link
-            demo_link: null,
-            presentation_link: null,
-            additional_notes: solutionPdfUrl ? `PDF: ${solutionPdfUrl}` : null,
-            status: "submitted",
-          });
-
-        if (extInsertError) {
-          console.error(`❌ External sync (team_solutions) failed: ${extInsertError.message}`);
-        } else {
-          console.log(`✅ External DB synced (team_solutions) for ${teamId}`);
-        }
-      } catch (syncErr) {
-        console.error("❌ External sync failed (non-blocking):", syncErr);
-      }
-    } else {
-      console.log("⚠️ EXTERNAL_SUPABASE_SERVICE_ROLE_KEY not set, skipping external sync");
-    }
+    console.log(`✅ Solution saved: ${primaryResult?.id} for team ${teamId}`);
 
     return new Response(
       JSON.stringify({
