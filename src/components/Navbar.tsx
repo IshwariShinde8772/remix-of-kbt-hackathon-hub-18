@@ -1,12 +1,19 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const navItems = [
     { name: "Home", path: "/" },
@@ -26,10 +33,10 @@ const Navbar = () => {
   };
 
   const scrollToElementWithOffset = (element: HTMLElement) => {
-    const navbarHeight = 60;
+    const navbarHeight = 64;
     const viewportHeight = window.innerHeight;
     const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-    const offsetPosition = elementPosition - navbarHeight - (viewportHeight * 0.15);
+    const offsetPosition = elementPosition - navbarHeight - (viewportHeight * 0.1);
     window.scrollTo({ top: offsetPosition, behavior: "smooth" });
   };
 
@@ -38,21 +45,17 @@ const Navbar = () => {
       const id = location.hash.replace("#", "");
       setTimeout(() => {
         const element = document.getElementById(id);
-        if (element) {
-          scrollToElementWithOffset(element);
-        }
+        if (element) scrollToElementWithOffset(element);
       }, 100);
     }
   }, [location.hash, location.key]);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setIsOpen(false);
   }, [location.pathname]);
 
   const handleNavClick = (path: string, e: React.MouseEvent) => {
     setIsOpen(false);
-
     if (path === "/") {
       e.preventDefault();
       if (location.pathname === "/") {
@@ -61,7 +64,6 @@ const Navbar = () => {
       navigate("/", { replace: true });
       return;
     }
-
     if (path.includes("#")) {
       const id = path.split("#")[1];
       if (location.pathname === "/") {
@@ -76,75 +78,91 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-secondary sticky top-0 z-50">
+    <nav className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? "bg-secondary/95 backdrop-blur-md shadow-lg" : "bg-secondary"}`}>
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-center py-3">
+        <div className="flex items-center justify-between h-14 md:h-16">
           {/* Mobile menu button */}
           <button
-            className="md:hidden absolute left-4 text-secondary-foreground p-1"
+            className="md:hidden text-secondary-foreground/90 hover:text-secondary-foreground p-2 rounded-lg hover:bg-secondary-foreground/10 transition-colors"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle menu"
           >
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
+            {isOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center justify-center flex-1 gap-1">
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}
                 onClick={(e) => handleNavClick(item.path, e)}
-                className={`nav-link ${isActive(item.path) ? "nav-link-active" : ""}`}
+                className={`relative px-3 lg:px-4 py-2 rounded-lg text-[13px] lg:text-sm font-medium tracking-wide transition-all duration-200 ${
+                  isActive(item.path)
+                    ? "bg-primary/90 text-primary-foreground shadow-sm"
+                    : "text-secondary-foreground/80 hover:text-secondary-foreground hover:bg-secondary-foreground/10"
+                }`}
               >
                 {item.name}
               </Link>
             ))}
+          </div>
+
+          {/* Desktop CTA buttons */}
+          <div className="hidden md:flex items-center gap-2">
             <Link to="/register">
-              <Button className="gradient-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+              <Button size="sm" className="gradient-primary text-primary-foreground px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm">
                 Register Team
               </Button>
             </Link>
             <Link to="/submit-solution">
-              <Button className="gradient-cta text-primary-foreground px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+              <Button size="sm" className="gradient-cta text-primary-foreground px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm">
                 Submit Solution
               </Button>
             </Link>
           </div>
 
           {/* Mobile: Show title */}
-          <span className="md:hidden text-secondary-foreground font-heading font-bold text-sm">
+          <span className="md:hidden text-secondary-foreground font-heading font-bold text-sm tracking-wide">
             KBT Avinyathon
           </span>
+
+          {/* Spacer for mobile layout balance */}
+          <div className="md:hidden w-10" />
         </div>
 
         {/* Mobile Navigation */}
-        {isOpen && (
-          <div className="md:hidden pb-4 space-y-1 border-t border-secondary-foreground/20 pt-3">
+        <div className={`md:hidden overflow-hidden transition-all duration-300 ${isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}>
+          <div className="pb-4 space-y-0.5 border-t border-secondary-foreground/15 pt-3">
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}
                 onClick={(e) => handleNavClick(item.path, e)}
-                className={`block nav-link text-sm ${isActive(item.path) ? "nav-link-active" : ""}`}
+                className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive(item.path)
+                    ? "bg-primary/90 text-primary-foreground"
+                    : "text-secondary-foreground/80 hover:text-secondary-foreground hover:bg-secondary-foreground/10"
+                }`}
               >
                 {item.name}
+                <ChevronRight className="w-4 h-4 opacity-40" />
               </Link>
             ))}
-            <div className="pt-2 space-y-2">
+            <div className="pt-3 px-1 grid grid-cols-2 gap-2">
               <Link to="/register" onClick={() => setIsOpen(false)}>
-                <Button className="w-full gradient-primary text-primary-foreground text-sm">
+                <Button className="w-full gradient-primary text-primary-foreground text-sm py-2.5 rounded-lg shadow-sm">
                   Register Team
                 </Button>
               </Link>
               <Link to="/submit-solution" onClick={() => setIsOpen(false)}>
-                <Button className="w-full gradient-cta text-primary-foreground text-sm">
+                <Button className="w-full gradient-cta text-primary-foreground text-sm py-2.5 rounded-lg shadow-sm">
                   Submit Solution
                 </Button>
               </Link>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </nav>
   );

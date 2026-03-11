@@ -5,19 +5,19 @@ import hackathonHero from "@/assets/hackathon-hero.jpg";
 
 const HeroSection = () => {
   return (
-    <section className="gradient-hero-bg py-4 md:py-6">
+    <section className="gradient-hero-bg py-6 md:py-10">
       {/* Event Title Banner */}
-      <div className="container mx-auto px-4 mb-6 md:mb-8">
+      <div className="container mx-auto px-4 mb-8 md:mb-10">
         <div className="flex justify-center">
           <div className="relative inline-block group w-full md:w-auto">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-primary rounded-xl md:rounded-2xl blur-2xl opacity-50 animate-pulse-glow scale-110" />
-            <div className="absolute inset-0 bg-gradient-to-r from-secondary via-primary to-secondary rounded-xl md:rounded-2xl blur-xl opacity-30 animate-pulse-glow-delayed scale-105" />
-            <div className="relative bg-gradient-to-r from-primary via-secondary to-primary rounded-xl md:rounded-2xl px-4 sm:px-6 md:px-12 py-3 md:py-6 shadow-2xl overflow-hidden border border-white/20">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/50 via-secondary/50 to-primary/50 animate-gradient-shift opacity-50" />
-              <div className="absolute top-2 left-8 w-2 h-2 bg-white rounded-full animate-sparkle opacity-70" />
-              <div className="absolute bottom-3 right-12 w-1.5 h-1.5 bg-white rounded-full animate-sparkle-delayed opacity-60" />
-              <h2 className="relative text-xl sm:text-2xl md:text-5xl lg:text-7xl font-heading font-black tracking-wide text-center animate-text-glow bg-gradient-to-r from-yellow-200 via-white to-yellow-200 bg-clip-text text-transparent drop-shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-primary rounded-2xl blur-2xl opacity-40 animate-pulse-glow scale-110" />
+            <div className="absolute inset-0 bg-gradient-to-r from-secondary via-primary to-secondary rounded-2xl blur-xl opacity-20 animate-pulse-glow-delayed scale-105" />
+            <div className="relative bg-gradient-to-r from-primary via-secondary to-primary rounded-2xl px-6 sm:px-10 md:px-16 py-4 md:py-7 shadow-2xl overflow-hidden border border-primary-foreground/10">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/20 to-transparent animate-shimmer" />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/50 via-secondary/50 to-primary/50 animate-gradient-shift opacity-40" />
+              <div className="absolute top-2 left-8 w-2 h-2 bg-primary-foreground rounded-full animate-sparkle opacity-60" />
+              <div className="absolute bottom-3 right-12 w-1.5 h-1.5 bg-primary-foreground rounded-full animate-sparkle-delayed opacity-50" />
+              <h2 className="relative text-2xl sm:text-3xl md:text-5xl lg:text-7xl font-heading font-black tracking-wider text-center animate-text-glow bg-gradient-to-r from-yellow-200 via-primary-foreground to-yellow-200 bg-clip-text text-transparent drop-shadow-lg">
                 KBT AVINYATHON 2026
               </h2>
             </div>
@@ -27,10 +27,10 @@ const HeroSection = () => {
 
       {/* Main Hero Content */}
       <div className="container mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Left Content */}
-          <div className="space-y-4 md:space-y-6 animate-fade-in text-center lg:text-left">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-heading font-black leading-tight">
+          <div className="space-y-5 md:space-y-6 animate-fade-in text-center lg:text-left">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-black leading-[1.15] tracking-tight">
               <span className="text-foreground">Transform Your</span>
               <br />
               <span className="text-gradient">Technological</span>
@@ -40,43 +40,41 @@ const HeroSection = () => {
               <span className="text-foreground">Into Solutions</span>
             </h1>
 
-            <p className="text-foreground text-sm sm:text-base md:text-lg">
+            <p className="text-foreground/90 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
               <strong>KBTCOE</strong> is organizing a{" "}
               <strong>State-Level KBT-AVINYATHON in April 2026</strong> designed to bring
               together innovative young minds to solve real-world industry problems.
             </p>
 
-            <div className="space-y-2">
+            <div className="space-y-2 text-left max-w-md mx-auto lg:mx-0">
               <p className="font-semibold text-foreground text-sm md:text-base">The event aims to:</p>
-              <ol className="space-y-1 text-foreground text-sm md:text-base">
-                <li>1. Encourage application of technical knowledge</li>
-                <li>2. Promote creativity and problem-solving</li>
-                <li>3. Connect students with industrial challenges</li>
-                <li>4. Build a strong industry–academia ecosystem</li>
+              <ol className="space-y-1.5 text-foreground/85 text-sm md:text-base pl-1">
+                <li className="flex gap-2"><span className="text-primary font-bold">1.</span> Encourage application of technical knowledge</li>
+                <li className="flex gap-2"><span className="text-primary font-bold">2.</span> Promote creativity and problem-solving</li>
+                <li className="flex gap-2"><span className="text-primary font-bold">3.</span> Connect students with industrial challenges</li>
+                <li className="flex gap-2"><span className="text-primary font-bold">4.</span> Build a strong industry–academia ecosystem</li>
               </ol>
             </div>
 
-            <p className="text-muted-foreground text-sm md:text-base">
+            <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-lg mx-auto lg:mx-0">
               Connect with brilliant innovators ready to tackle your problems.
-              Get breakthrough solutions in just few hours.
+              Get breakthrough solutions in just a few hours.
             </p>
 
-            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-center sm:items-start">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-center lg:items-start pt-1">
               <Link to="/problems" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto gradient-cta text-primary-foreground font-semibold px-6 md:px-8 py-5 md:py-6 text-base md:text-lg rounded-xl hover:opacity-90 transition-opacity">
+                <Button size="lg" className="w-full sm:w-auto gradient-cta text-primary-foreground font-semibold px-8 py-6 text-base md:text-lg rounded-xl hover:opacity-90 transition-opacity shadow-lg">
                   View Problem Statements
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="w-full sm:w-auto px-6 md:px-8 py-5 md:py-6 text-base md:text-lg rounded-xl border-2 border-foreground text-foreground hover:bg-muted"
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto px-8 py-6 text-base md:text-lg rounded-xl border-2 border-foreground/20 text-foreground hover:bg-muted transition-colors"
                 onClick={() => {
                   const element = document.getElementById("process");
-                  if (element) {
-                    element.scrollIntoView({ behavior: "smooth" });
-                  }
+                  if (element) element.scrollIntoView({ behavior: "smooth" });
                 }}
               >
                 Learn How It Works
@@ -92,9 +90,9 @@ const HeroSection = () => {
                 alt="Students collaborating at hackathon"
                 className="w-full h-auto object-cover"
               />
-              <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 glass-card rounded-xl px-3 py-2 md:px-4 md:py-3 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-success" />
-                <span className="font-medium text-foreground text-xs md:text-base">Rapid Solutions</span>
+              <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 glass-card rounded-xl px-4 py-2.5 flex items-center gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+                <span className="font-semibold text-foreground text-xs md:text-sm">Rapid Solutions</span>
               </div>
             </div>
           </div>
