@@ -185,7 +185,8 @@ serve(async (req) => {
 </body>
 </html>`;
 
-          const nodemailer = (await import("npm:nodemailer@6")).default;
+          // @ts-ignore - Deno npm specifier
+          const { default: nodemailer } = await import("https://esm.sh/nodemailer@6");
           const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",
             port: 465,
