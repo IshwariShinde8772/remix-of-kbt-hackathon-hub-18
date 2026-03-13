@@ -82,8 +82,8 @@ const VerticalArrow = ({ className = "" }: { className?: string }) => (
    MOBILE / TABLET  – vertical timeline card
 ───────────────────────────────────────────── */
 const TimelineStep = ({ step, highlight, isLast }: { step: typeof steps[0]; highlight?: Highlight; isLast?: boolean }) => {
-  const badgeBg = highlight === "green" ? "bg-success" : "gradient-primary";
-  const dateBg = highlight === "green" ? "bg-success/10 text-success" : "bg-primary/10 text-primary";
+  const badgeBg = highlight === "done" ? "bg-muted-foreground" : highlight === "green" ? "bg-success" : "gradient-primary";
+  const dateBg = highlight === "done" ? "bg-muted-foreground/10 text-muted-foreground line-through" : highlight === "green" ? "bg-success/10 text-success" : "bg-primary/10 text-primary";
   const borderClass =
     highlight === "green"
       ? "border-success border-2"
