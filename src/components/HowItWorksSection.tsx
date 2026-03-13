@@ -12,7 +12,7 @@ const steps = [
   { number: 9, title: "Winner Announcement", description: "Winners are announced and prizes are distributed during the valedictory ceremony.", date: "11 APR 2026" },
 ];
 
-type Highlight = "primary" | "green" | undefined;
+type Highlight = "primary" | "green" | "done" | undefined;
 
 /* ─────────────────────────────────────────────
    STEP CARD  (used by all layouts)
