@@ -69,33 +69,30 @@ const SubmitSolution = () => {
     setVerifiedTeam(null);
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/submit-solution`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
-        },
-        body: JSON.stringify({
+      console.log("🔍 Verifying team with ID:", teamIdInput.trim());
+      
+      const { data: result, error: invokeError } = await supabase.functions.invoke("submit-solution", {
+        body: {
           action: "validate",
           team_id: teamIdInput.trim(),
           college_name: collegeName.trim(),
           institute_number: instituteNumber.trim()
-        }),
+        }
       });
 
-      const result = await response.json();
+      if (invokeError) {
+        console.error("❌ Verification error:", invokeError);
+        throw new Error(invokeError.message || "Verification failed");
+      }
 
-      if (!response.ok) {
-        throw new Error(result.error || "Verification failed");
+      if (!result || result.error) {
+        throw new Error(result?.error || "Invalid Team ID, College Name, or Institute Number.");
       }
 
       setVerifiedTeam(result);
       toast.success("Team verified successfully!");
     } catch (error: any) {
+      console.error("❌ Search error:", error);
       toast.error(error.message || "Team not found. Please check your details.");
       scrollToTop();
     } finally {

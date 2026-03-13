@@ -38,16 +38,21 @@ serve(async (req) => {
     if (contentType.includes("application/json")) {
       let body;
       const rawBody = await req.text();
+      console.log(`📥 Received JSON body (len: ${rawBody.length}): "${rawBody.substring(0, 100)}..."`);
+      
       try {
         body = JSON.parse(rawBody);
-      } catch (e) {
-        console.error("❌ Malformed JSON received. Raw body:", rawBody);
-        return new Response(JSON.stringify({ error: "Invalid request data format." }), {
+      } catch (e: any) {
+        console.error("❌ Malformed JSON received. Error:", e.message);
+        console.error("❌ Full raw body for debugging:", rawBody);
+        return new Response(JSON.stringify({ 
+          error: "Invalid request data format.",
+          details: e.message 
+        }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
       
-      console.log("📥 Received JSON body:", body);
       const { team_id, college_name, institute_number, action } = body;
 
       if (action === "validate") {
