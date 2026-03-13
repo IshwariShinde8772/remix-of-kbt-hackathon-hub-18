@@ -31,16 +31,14 @@ const SubmitSolution = () => {
   const navigate = useNavigate();
 
   // Step 1: Identify team
-  const [leaderName, setLeaderName] = useState("");
+  const [teamIdInput, setTeamIdInput] = useState("");
   const [collegeName, setCollegeName] = useState("");
   const [instituteNumber, setInstituteNumber] = useState("");
-  const [teams, setTeams] = useState<TeamInfo[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [verifiedTeam, setVerifiedTeam] = useState<{ team_name: string, problem_statement: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
   // Step 2: Submit solution
-  const [problemInfo, setProblemInfo] = useState<ProblemInfo | null>(null);
   const [solutionFile, setSolutionFile] = useState<File | null>(null);
   const [youtubeLink, setYoutubeLink] = useState("");
   const [description, setDescription] = useState("");
@@ -59,48 +57,49 @@ const SubmitSolution = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const searchTeams = async () => {
-    if (!leaderName.trim() || !collegeName.trim() || !instituteNumber.trim()) {
-      toast.error("Please fill all fields to search your team");
+  const verifyTeam = async () => {
+    if (!teamIdInput.trim() || !collegeName.trim() || !instituteNumber.trim()) {
+      toast.error("Please fill all fields to verify your team");
       scrollToTop();
       return;
     }
 
     setIsSearching(true);
     setHasSearched(true);
+    setVerifiedTeam(null);
 
-    const { data, error } = await supabase
-      .from("registered_teams")
-      .select("team_id, team_name, leader_name, selected_problem_id, selected_domain")
-      .ilike("leader_name", `%${leaderName.trim()}%`)
-      .ilike("college_name", `%${collegeName.trim()}%`)
-      .ilike("institute_number", `%${instituteNumber.trim()}%`);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    if (error) {
-      toast.error("Search failed", { description: error.message });
-      scrollToTop();
-    } else {
-      setTeams((data || []) as TeamInfo[]);
-      if (!data || data.length === 0) {
-        toast.error("No teams found matching your details");
-        scrollToTop();
+      const response = await fetch(`${supabaseUrl}/functions/v1/submit-solution`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": supabaseKey,
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          action: "validate",
+          team_id: teamIdInput.trim(),
+          college_name: collegeName.trim(),
+          institute_number: instituteNumber.trim()
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Verification failed");
       }
-    }
-    setIsSearching(false);
-  };
 
-  const selectTeam = async (teamId: string) => {
-    setSelectedTeamId(teamId);
-    setProblemInfo(null);
-    const team = teams.find((t) => t.team_id === teamId);
-
-    if (team?.selected_problem_id) {
-      const { data } = await supabase
-        .from("problem_statements")
-        .select("id, problem_title, domain")
-        .eq("id", team.selected_problem_id)
-        .maybeSingle();
-      if (data) setProblemInfo(data as ProblemInfo);
+      setVerifiedTeam(result);
+      toast.success("Team verified successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Team not found. Please check your details.");
+      scrollToTop();
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -126,74 +125,42 @@ const SubmitSolution = () => {
 
   const handleSubmit = async () => {
     if (isSubmitting) return; // Prevent double-click
-    if (!selectedTeamId) { toast.error("Please select your team"); scrollToTop(); return; }
+    if (!verifiedTeam) { toast.error("Please verify your team first"); scrollToTop(); return; }
     if (!youtubeLink.trim()) { toast.error("YouTube video link is required"); scrollToTop(); return; }
     if (!validateYoutubeLink(youtubeLink)) { toast.error("Please enter a valid YouTube link"); scrollToTop(); return; }
     if (!solutionFile) { toast.error("Please upload your solution PDF"); scrollToTop(); return; }
 
-    // Check for duplicate submission
-    const { data: existingSubs } = await supabase
-      .from("submissions")
-      .select("id")
-      .eq("team_id", selectedTeamId);
-
-    if (existingSubs && existingSubs.length > 0) {
-      toast.error("Your team has already submitted a solution", {
-        description: "Each team can only submit once. Contact organizers if you need to resubmit.",
-        duration: 8000,
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("team_id", selectedTeamId);
+      formData.append("team_id", teamIdInput.trim());
+      formData.append("college_name", collegeName.trim());
+      formData.append("institute_number", instituteNumber.trim());
       formData.append("youtube_link", youtubeLink.trim());
       formData.append("description", description.trim() || "");
-      formData.append("problem_id", problemInfo?.id || "");
       formData.append("solution_file", solutionFile);
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      let response = null;
-      let lastError = "";
+      const response = await fetch(`${supabaseUrl}/functions/v1/submit-solution`, {
+        method: "POST",
+        headers: {
+          "apikey": supabaseKey,
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: formData,
+      });
 
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-          response = await fetch(`${supabaseUrl}/functions/v1/submit-solution`, {
-            method: "POST",
-            headers: {
-              "apikey": supabaseKey,
-              "Authorization": `Bearer ${supabaseKey}`,
-            },
-            body: formData,
-          });
+      const result = await response.json();
 
-          if (response.ok) break;
-
-          const errResult = await response.json();
-          lastError = errResult.error || "Submission failed";
-
-          if (attempt < 2) {
-            await new Promise(r => setTimeout(r, 1500));
-          }
-        } catch (_networkErr) {
-          lastError = "Network error. Please check your connection.";
-          if (attempt < 2) {
-            await new Promise(r => setTimeout(r, 1500));
-          }
-        }
+      if (!response.ok) {
+        throw new Error(result.error || "Submission failed");
       }
 
-      if (!response || !response.ok) {
-        throw new Error(lastError || "Submission failed after retries");
-      }
-
-      await response.json();
-      setSubmittedTeamId(selectedTeamId);
+      setSubmittedTeamId(teamIdInput.trim());
       setSubmitted(true);
+      toast.success("Solution submitted successfully!");
     } catch (error: any) {
       toast.error("Submission failed", {
         description: error.message || "Please check your connection and try again.",
@@ -204,8 +171,6 @@ const SubmitSolution = () => {
       setIsSubmitting(false);
     }
   };
-
-  const selectedTeam = teams.find((t) => t.team_id === selectedTeamId);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -260,100 +225,91 @@ const SubmitSolution = () => {
               <div className="bg-background rounded-2xl shadow-xl overflow-hidden">
                 <div className="gradient-primary p-6 text-primary-foreground">
                   <h1 className="text-2xl font-heading font-bold">Submit Solution</h1>
-                  <p className="text-sm opacity-80">Upload your team's YouTube demo link and solution PDF</p>
+                  <p className="text-sm opacity-80">Verify your team and upload solution</p>
                 </div>
 
                 <div className="p-6 md:p-8 space-y-6">
-                  {/* Step 1: Find Team */}
+                  {/* Step 1: Verify Team */}
                   <div className="space-y-4">
                     <h3 className="font-semibold flex items-center gap-2">
-                      <Search className="w-5 h-5 text-primary" />
-                      Step 1: Find Your Team
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                      Step 1: Verify Your Team
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Enter the details you used during registration.
+                      Enter your Team ID, College Name, and Institute Number.
                     </p>
                     <div className="grid md:grid-cols-3 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-xs">Leader Name *</Label>
+                        <Label className="text-xs">Team ID *</Label>
                         <Input
-                          placeholder="Full name"
-                          value={leaderName}
-                          onChange={(e) => setLeaderName(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && searchTeams()}
+                          placeholder="KBT-XXXX"
+                          value={teamIdInput}
+                          onChange={(e) => setTeamIdInput(e.target.value.toUpperCase())}
+                          disabled={!!verifiedTeam}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">College Name *</Label>
                         <Input
-                          placeholder="College name"
+                          placeholder="As per registration"
                           value={collegeName}
                           onChange={(e) => setCollegeName(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && searchTeams()}
+                          disabled={!!verifiedTeam}
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Institute Number *</Label>
+                        <Label className="text-xs">Institute ID *</Label>
                         <Input
-                          placeholder="e.g. 123456"
+                          placeholder="Institute ID"
                           value={instituteNumber}
                           onChange={(e) => setInstituteNumber(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && searchTeams()}
+                          disabled={!!verifiedTeam}
                         />
                       </div>
                     </div>
-                    <Button onClick={searchTeams} disabled={isSearching} className="gradient-primary text-primary-foreground">
-                      <Search className="w-4 h-4 mr-2" />
-                      {isSearching ? "Searching..." : "Search Teams"}
-                    </Button>
-
-                    {hasSearched && teams.length > 0 && (
-                      <div className="space-y-2">
-                        <Label>Select your team:</Label>
-                        <Select value={selectedTeamId} onValueChange={selectTeam}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose your team" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {teams.map((t) => (
-                              <SelectItem key={t.team_id} value={t.team_id}>
-                                {t.team_id} — {t.team_name} (Leader: {t.leader_name})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                    
+                    {!verifiedTeam ? (
+                      <Button onClick={verifyTeam} disabled={isSearching} className="gradient-primary text-primary-foreground w-full sm:w-auto">
+                        <Search className="w-4 h-4 mr-2" />
+                        {isSearching ? "Verifying..." : "Verify Team"}
+                      </Button>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-100 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          <div>
+                            <p className="text-sm font-bold text-green-900">{verifiedTeam.team_name}</p>
+                            <p className="text-xs text-green-700">Verified successfully</p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => { setVerifiedTeam(null); setHasSearched(false); }} className="text-muted-foreground h-8">
+                          <X className="w-4 h-4 mr-1" /> Edit
+                        </Button>
                       </div>
                     )}
 
-                    {hasSearched && teams.length === 0 && (
+                    {hasSearched && !verifiedTeam && !isSearching && (
                       <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive text-sm">
                         <AlertCircle className="w-5 h-5" />
-                        No registered teams found. Please check your details or register first.
+                        Verification failed. Please check your details or contact organizers.
                       </div>
                     )}
                   </div>
 
                   {/* Step 2: Submit Solution */}
-                  {selectedTeamId && (
-                    <div className="space-y-5 border-t border-border pt-6">
+                  {verifiedTeam && (
+                    <div className="space-y-5 border-t border-border pt-6 animate-in fade-in slide-in-from-top-4 duration-500">
                       <h3 className="font-semibold flex items-center gap-2">
                         <Upload className="w-5 h-5 text-primary" />
                         Step 2: Submit Your Solution
                       </h3>
 
-                      {selectedTeam && (
-                        <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-1">
-                          <p>Team ID: <span className="font-bold font-mono text-primary">{selectedTeam.team_id}</span></p>
-                          <p>Team: <span className="font-bold">{selectedTeam.team_name}</span></p>
-                          {problemInfo && (
-                            <p>Problem: <span className="font-bold">{problemInfo.problem_title}</span>
-                              {problemInfo.domain && (
-                                <Badge className="ml-2 text-xs" variant="secondary">{problemInfo.domain}</Badge>
-                              )}
-                            </p>
-                          )}
+                      <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Allocated Problem Statement</p>
+                          <p className="text-base font-bold text-foreground leading-tight mt-1">{verifiedTeam.problem_statement}</p>
                         </div>
-                      )}
+                      </div>
 
                       {/* YouTube Link */}
                       <div className="space-y-2">

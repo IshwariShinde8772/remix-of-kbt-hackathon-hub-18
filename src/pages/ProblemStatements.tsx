@@ -218,14 +218,21 @@ const ProblemStatements = () => {
   const [teamCounts, setTeamCounts] = useState<Record<string, number>>({});
   useEffect(() => {
     const fetchTeamCounts = async () => {
-      const { data } = await supabase
-        .from("registered_teams")
-        .select("selected_problem_id");
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const isExternal = supabaseUrl.includes("lxawemydhhmqjahttrlb");
+      const regTable = isExternal ? "team_registrations" : "registered_teams";
+      const probIdCol = isExternal ? "problem_statement_id" : "selected_problem_id";
+
+      const { data }: { data: any[] | null } = await supabase
+        .from(regTable as any)
+        .select(probIdCol);
+
       if (data) {
         const counts: Record<string, number> = {};
         data.forEach((t: any) => {
-          if (t.selected_problem_id) {
-            counts[t.selected_problem_id] = (counts[t.selected_problem_id] || 0) + 1;
+          const pid = t[probIdCol];
+          if (pid) {
+            counts[pid] = (counts[pid] || 0) + 1;
           }
         });
         setTeamCounts(counts);

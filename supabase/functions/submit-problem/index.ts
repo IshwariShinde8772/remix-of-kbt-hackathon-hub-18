@@ -51,8 +51,6 @@ serve(async (req) => {
 
     // Handle file upload if provided
     let paymentProofUrl: string | null = null;
-    let fileData: Uint8Array | null = null;
-    let fileName: string | null = null;
 
     if (data.payment_proof_base64 && data.payment_proof_filename && data.payment_proof_type) {
       // Validate file type
@@ -64,8 +62,8 @@ serve(async (req) => {
       }
 
       // Decode base64 and validate size
-      fileData = decode(data.payment_proof_base64);
-      if (fileData.length > MAX_FILE_SIZE) {
+      const decodedData = decode(data.payment_proof_base64);
+      if (decodedData.length > MAX_FILE_SIZE) {
         return new Response(JSON.stringify({ error: "File too large. Maximum size is 5MB" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -75,12 +73,12 @@ serve(async (req) => {
       // Generate secure filename
       const fileExt = data.payment_proof_filename.split('.').pop()?.toLowerCase() || 'bin';
       const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'pdf'].includes(fileExt) ? fileExt : 'bin';
-      fileName = `${Date.now()}-${crypto.randomUUID()}.${safeExt}`;
+      const fileName = `${Date.now()}-${crypto.randomUUID()}.${safeExt}`;
 
       // Upload to primary Lovable Cloud bucket using service role
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(fileName, fileData, {
+        .upload(fileName, decodedData, {
           contentType: data.payment_proof_type,
           upsert: false,
         });
@@ -94,10 +92,10 @@ serve(async (req) => {
       }
 
       // Also upload to external Supabase storage if configured
-      if (externalSupabase && fileData && fileName) {
+      if (externalSupabase && decodedData && fileName) {
         const { error: extUploadError } = await externalSupabase.storage
           .from('payment-proofs')
-          .upload(fileName, fileData, {
+          .upload(fileName, decodedData, {
             contentType: data.payment_proof_type,
             upsert: false,
           });
@@ -240,7 +238,7 @@ serve(async (req) => {
     console.log("Problem statement saved to database successfully");
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
-    console.error("Edge function error:", error);
-    return new Response(JSON.stringify({ error: "An error occurred" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("❌ Submit problem error:", error);
+    return new Response(JSON.stringify({ error: "Submission failed. Please try again later." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

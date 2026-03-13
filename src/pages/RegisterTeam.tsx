@@ -181,43 +181,46 @@ const RegisterTeam = () => {
     setIsSubmitting(true);
 
     try {
+      // Schema awareness
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const isExternal = supabaseUrl.includes("lxawemydhhmqjahttrlb");
+      const regTable = isExternal ? "team_registrations" : "registered_teams";
+      const idColumn = isExternal ? "registration_id" : "team_id";
+
       // Check for duplicate registration (same leader email + college)
-      const { data: existingTeams } = await supabase
-        .from("registered_teams")
-        .select("team_id")
+      const { data: existingTeams }: { data: any[] | null } = await supabase
+        .from(regTable as any)
+        .select(idColumn)
         .ilike("leader_email", leaderEmail.trim())
         .ilike("college_name", collegeName.trim());
 
       if (existingTeams && existingTeams.length > 0) {
+        const teamId = (existingTeams[0] as any)[idColumn];
         toast.error("A team with this leader email from this college is already registered", {
-          description: `Existing Team ID: ${existingTeams[0].team_id}`,
+          description: `Existing Team ID: ${teamId}`,
           duration: 8000,
         });
         setIsSubmitting(false);
         return;
       }
 
-      let primaryFormUrl = regFormUrl;
+      let regFileData = null;
+      let regFileName = null;
+      let regFileType = null;
 
-      // Enable dual upload to storage
       if (regFormFile) {
-        const fileExt = regFormFile.name.split('.').pop();
-        const fileName = `${teamName.replace(/\s+/g, '_')}_${Date.now()}.${fileExt}`;
-        const filePath = fileName;
-
-        const { error: primaryUploadError } = await supabase.storage
-          .from('registration-forms')
-          .upload(filePath, regFormFile);
-
-        if (primaryUploadError) {
-          console.error("Primary upload error:", primaryUploadError);
-          throw new Error("File upload failed. Please try again.");
-        }
-
-        const { data: { publicUrl: primaryPublicUrl } } = supabase.storage
-          .from('registration-forms')
-          .getPublicUrl(filePath);
-        primaryFormUrl = primaryPublicUrl;
+        regFileName = `${teamName.replace(/\s+/g, '_')}_${Date.now()}.${regFormFile.name.split('.').pop()}`;
+        regFileType = regFormFile.type;
+        
+        // Convert file to Base64
+        regFileData = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64String = reader.result as string;
+            resolve(base64String.split(',')[1]); // Remove the data:xxx base64 prefix
+          };
+          reader.readAsDataURL(regFormFile);
+        });
       }
 
       // Invoke Edge Function with retry
@@ -240,7 +243,10 @@ const RegisterTeam = () => {
             mentor_name: mentorName,
             mentor_email: mentorEmail,
             mentor_contact: mentorContact,
-            registration_form_url: primaryFormUrl || regFormUrl,
+            registration_form_url: regFormUrl, // This could be a static link
+            reg_file_data: regFileData,
+            reg_file_name: regFileName,
+            reg_file_type: regFileType,
           },
         });
 
