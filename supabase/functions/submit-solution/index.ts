@@ -58,6 +58,14 @@ serve(async (req) => {
       if (action === "validate") {
         if (!team_id) throw new Error("Team ID is required for validation");
 
+        console.log("🔍 Searching for team with:", {
+          table: primaryRegTable,
+          idCol: regIdCol,
+          idVal: team_id.trim(),
+          collegeVal: college_name?.trim(),
+          instVal: institute_number?.trim()
+        });
+
         const { data: team, error: findError } = await supabase
           .from(primaryRegTable)
           .select(`${regIdCol}, team_name, college_name, institute_number, leader_email, ${probTitleCol}`)
@@ -66,12 +74,21 @@ serve(async (req) => {
           .eq("institute_number", institute_number?.trim() || "")
           .maybeSingle();
 
-        if (findError || !team) {
-          console.log("❌ Team verification failed for:", team_id);
+        if (findError) {
+          console.error("❌ Database query error:", findError);
+          return new Response(JSON.stringify({ error: "Database error during verification." }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        if (!team) {
+          console.log("❌ Team verification failed. No match found for:", team_id);
           return new Response(JSON.stringify({ error: "Invalid Team ID, College Name, or Institute Number." }), {
             status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
           });
         }
+
+        console.log("✅ Team found:", team);
 
         let problemStatement = (team as any)[probTitleCol] || "General Problem";
         // If it's the internal project and we have an ID, fetch the title
