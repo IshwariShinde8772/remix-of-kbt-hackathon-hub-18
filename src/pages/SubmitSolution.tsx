@@ -137,22 +137,17 @@ const SubmitSolution = () => {
       formData.append("description", description.trim() || "");
       formData.append("solution_file", solutionFile);
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/submit-solution`, {
-        method: "POST",
-        headers: {
-          "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
-        },
+      const { data: result, error: invokeError } = await supabase.functions.invoke("submit-solution", {
         body: formData,
       });
 
-      const result = await response.json();
+      if (invokeError) {
+        console.error("❌ Submission error:", invokeError);
+        throw new Error(invokeError.message || "Submission failed");
+      }
 
-      if (!response.ok) {
-        throw new Error(result.error || "Submission failed");
+      if (!result || result.error) {
+        throw new Error(result?.error || "Submission failed. Please check your details.");
       }
 
       setSubmittedTeamId(teamIdInput.trim());
