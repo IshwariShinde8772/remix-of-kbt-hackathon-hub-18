@@ -4,50 +4,68 @@ import nodemailer from "npm:nodemailer";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
+  // 1. Handle CORS Preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
+
+  console.log(`🚀 Request: ${req.method} ${req.url}`);
+  const contentType = req.headers.get("content-type") || "";
+  console.log(`📝 Content-Type: ${contentType}`);
 
   try {
     const primaryUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const primaryKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabase = createClient(primaryUrl, primaryKey);
+    
+    if (!primaryUrl || !primaryKey) {
+      console.error("❌ Missing Supabase environment variables");
+      throw new Error("Server configuration error: missing credentials");
+    }
 
+    const supabase = createClient(primaryUrl, primaryKey);
     const isExternal = primaryUrl.includes("lxawemydhhmqjahttrlb");
     const primaryRegTable = isExternal ? "team_registrations" : "registered_teams";
     const primarySolTable = isExternal ? "team_solutions" : "submissions";
     const regIdCol = isExternal ? "registration_id" : "team_id";
     const probTitleCol = isExternal ? "problem_statement_title" : "selected_problem_id";
 
-    const contentType = req.headers.get("content-type") || "";
-
+    // ── 2. Handle JSON Requests (Validation) ──
     if (contentType.includes("application/json")) {
-      const { team_id, college_name, institute_number, action } = await req.json();
+      const body = await req.json();
+      console.log("📥 Received JSON body:", body);
+      const { team_id, college_name, institute_number, action } = body;
+
       if (action === "validate") {
+        if (!team_id) throw new Error("Team ID is required for validation");
+
         const { data: team, error: findError } = await supabase
           .from(primaryRegTable)
           .select(`${regIdCol}, team_name, college_name, institute_number, leader_email, ${probTitleCol}`)
-          .eq(regIdCol, team_id?.trim())
-          .ilike("college_name", `%${college_name?.trim()}%`)
-          .eq("institute_number", institute_number?.trim())
+          .eq(regIdCol, team_id.trim())
+          .ilike("college_name", `%${college_name?.trim() || ""}%`)
+          .eq("institute_number", institute_number?.trim() || "")
           .maybeSingle();
 
         if (findError || !team) {
+          console.log("❌ Team verification failed for:", team_id);
           return new Response(JSON.stringify({ error: "Invalid Team ID, College Name, or Institute Number." }), {
             status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
           });
         }
 
         let problemStatement = (team as any)[probTitleCol] || "General Problem";
+        // If it's the internal project and we have an ID, fetch the title
         if (!isExternal && team.selected_problem_id) {
           const { data: prob } = await supabase.from("problem_statements").select("problem_title").eq("id", team.selected_problem_id).maybeSingle();
           if (prob) problemStatement = prob.problem_title;
         }
 
+        console.log("✅ Team verified successfully");
         return new Response(JSON.stringify({ 
           success: true, 
           team_name: team.team_name,
@@ -56,8 +74,11 @@ serve(async (req) => {
       }
     }
 
+    // ── 3. Handle Multipart Requests (Submission) ──
     if (contentType.includes("multipart/form-data")) {
+      console.log("📤 Parsing multipart form data...");
       const formData = await req.formData();
+      
       const teamId = formData.get("team_id") as string;
       const college = formData.get("college_name") as string;
       const instId = formData.get("institute_number") as string;
@@ -65,18 +86,24 @@ serve(async (req) => {
       const description = formData.get("description") as string;
       const pdfFile = formData.get("solution_file") as File;
 
+      console.log("📦 Received fields:", { teamId, youtubeLink, hasFile: !!pdfFile });
+
       if (!teamId || !youtubeLink || !pdfFile) {
-        return new Response(JSON.stringify({ error: "Team ID, YouTube link, and PDF file are ALL compulsory." }), {
+        console.error("❌ Rejected: Missing fields", { teamId, youtubeLink, hasFile: !!pdfFile });
+        return new Response(JSON.stringify({ 
+          error: "Team ID, YouTube video link, and solution PDF are all required for submission." 
+        }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
+      // ── Step A: Secondary Verification ──
       const { data: teamCheck } = await supabase
         .from(primaryRegTable)
         .select(`${regIdCol}, team_name, leader_email`)
         .eq(regIdCol, teamId)
-        .ilike("college_name", `%${college}%`)
-        .eq("institute_number", instId)
+        .ilike("college_name", `%${college || ""}%`)
+        .eq("institute_number", instId || "")
         .maybeSingle();
 
       if (!teamCheck) {
@@ -85,45 +112,64 @@ serve(async (req) => {
         });
       }
 
+      // ── Step B: Storage Upload ──
       const fileName = `${teamId}-${Date.now()}.pdf`;
       const fileBuffer = await pdfFile.arrayBuffer();
 
+      console.log(`📤 Uploading file: ${fileName}`);
       const { error: uploadError } = await supabase.storage.from("solutions").upload(fileName, fileBuffer, { contentType: "application/pdf" });
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("❌ Storage error:", uploadError);
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
+      }
 
+      // ── Step C: Database Insert ──
       const insertData = isExternal ? {
-        registration_id: teamId, solution_title: `Solution by ${teamId}`, solution_description: description, github_link: "N/A", video_link: youtubeLink, solution_pdf_url: fileName, status: "submitted"
+        registration_id: teamId, 
+        solution_title: `Solution by ${teamId}`, 
+        solution_description: description || "N/A", 
+        github_link: "N/A", 
+        video_link: youtubeLink, 
+        solution_pdf_url: fileName, 
+        status: "submitted"
       } : {
-        team_id: teamId, description: description, youtube_link: youtubeLink, solution_pdf_url: fileName, status: "pending"
+        team_id: teamId, 
+        description: description || "N/A", 
+        youtube_link: youtubeLink, 
+        solution_pdf_url: fileName, 
+        status: "pending"
       };
 
+      console.log(`📝 Inserting into ${primarySolTable}`);
       const { data: result, error: insertError } = await supabase.from(primarySolTable).insert(insertData).select("id").single();
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("❌ Insert error:", insertError);
+        throw insertError;
+      }
 
+      // ── Step D: Background Work (Dual Sync & Email) ──
       const dualSyncAndEmail = async () => {
-        const extKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
-        const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
-        const gmailUser = "kbtavinyathon@gmail.com";
+        try {
+          const extKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+          const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
+          const gmailUser = "kbtavinyathon@gmail.com";
 
-        // ── 1. Dual Sync Storage & DB ──
-        if (extKey) {
-          const otherUrl = isExternal ? "https://wunqjksrgdppzcucwcyd.supabase.co" : "https://lxawemydhhmqjahttrlb.supabase.co";
-          const otherClient = createClient(otherUrl, extKey);
-          
-          await otherClient.storage.from("solutions").upload(fileName, fileBuffer, { contentType: "application/pdf" });
-          
-          const otherTable = isExternal ? "submissions" : "team_solutions";
-          const syncData = isExternal ? {
-            team_id: teamId, description: description, youtube_link: youtubeLink, solution_pdf_url: fileName, status: "pending"
-          } : {
-            registration_id: teamId, solution_title: `Solution by ${teamId}`, solution_description: description, github_link: "N/A", video_link: youtubeLink, solution_pdf_url: fileName, status: "submitted"
-          };
-          await otherClient.from(otherTable).insert(syncData);
-        }
+          if (extKey) {
+            const otherUrl = isExternal ? "https://wunqjksrgdppzcucwcyd.supabase.co" : "https://lxawemydhhmqjahttrlb.supabase.co";
+            const otherClient = createClient(otherUrl, extKey);
+            
+            await otherClient.storage.from("solutions").upload(fileName, fileBuffer, { contentType: "application/pdf" });
+            
+            const otherTable = isExternal ? "submissions" : "team_solutions";
+            const syncData = isExternal ? {
+              team_id: teamId, description: description || "N/A", youtube_link: youtubeLink, solution_pdf_url: fileName, status: "pending"
+            } : {
+              registration_id: teamId, solution_title: `Solution by ${teamId}`, solution_description: description || "N/A", github_link: "N/A", video_link: youtubeLink, solution_pdf_url: fileName, status: "submitted"
+            };
+            await otherClient.from(otherTable).insert(syncData);
+          }
 
-        // ── 2. Send Confirmation Email ──
-        if (gmailPass && teamCheck.leader_email) {
-          try {
+          if (gmailPass && teamCheck.leader_email) {
             const transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: gmailUser, pass: gmailPass } });
             await transporter.sendMail({
               from: `"KBT Avinyathon 2026" <${gmailUser}>`,
@@ -143,20 +189,27 @@ serve(async (req) => {
                 <div style="background: #f1f5f9; padding: 15px; text-align: center; font-size: 12px; color: #64748b;">KBT College of Engineering, Nashik</div>
               </div>`
             });
-          } catch (e) { console.error("Email error:", e); }
+          }
+        } catch (bgError) {
+          console.error("⚠️ Background work warning:", bgError);
         }
       };
 
       if ((globalThis as any).EdgeRuntime) { (globalThis as any).EdgeRuntime.waitUntil(dualSyncAndEmail()); }
       else { dualSyncAndEmail(); }
 
+      console.log("✅ Final success response sent");
       return new Response(JSON.stringify({ success: true, submission_id: result.id }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ error: "Unsupported request format." }), { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error: any) {
-    console.error("❌ Submission error:", error);
-    return new Response(JSON.stringify({ error: "Submission failed. Please try again later." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("❌ Submission error detail:", error);
+    // Sanitize user message for security
+    return new Response(JSON.stringify({ error: "Submission failed. Please try again later." }), { 
+      status: 500, 
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    });
   }
 });

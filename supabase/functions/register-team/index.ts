@@ -188,25 +188,25 @@ Deno.serve(async (req) => {
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f7f9; }
     .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .header { background-color: #1e293b; color: #ffffff; padding: 30px; text-align: center; }
-    .header h1 { margin: 0; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; }
-    .header p { margin: 5px 0 0; font-size: 12px; opacity: 0.8; letter-spacing: 1px; }
-    .content { padding: 30px; }
-    .welcome { font-size: 20px; font-weight: bold; color: #1e293b; margin-bottom: 20px; }
-    .team-id-box { background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 25px; margin: 30px 0; text-align: center; }
-    .team-id-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-    .team-id-value { font-size: 28px; font-weight: 800; color: #2563eb; margin: 10px 0; letter-spacing: 2px; }
-    .team-id-warning { font-size: 11px; color: #f59e0b; font-weight: 600; margin-top: 5px; }
-    .details-section { margin-top: 25px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
-    .details-title { font-weight: bold; font-size: 15px; margin-bottom: 12px; color: #1e293b; }
-    .detail-row { display: block; margin-bottom: 8px; font-size: 13px; }
-    .detail-label { display: inline-block; width: 130px; color: #64748b; font-weight: 500; }
+    .header h1 { margin: 0; font-size: 20px; letter-spacing: 1px; text-transform: uppercase; }
+    .header p { margin: 5px 0 0; font-size: 10px; opacity: 0.8; letter-spacing: 1px; }
+    .content { padding: 25px; }
+    .welcome { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 15px; }
+    .team-id-box { background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center; }
+    .team-id-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .team-id-value { font-size: 24px; font-weight: 800; color: #2563eb; margin: 8px 0; letter-spacing: 1px; }
+    .team-id-warning { font-size: 10px; color: #f59e0b; font-weight: 600; margin-top: 5px; }
+    .details-section { margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+    .details-title { font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #1e293b; }
+    .detail-row { display: block; margin-bottom: 6px; font-size: 12px; }
+    .detail-label { display: inline-block; width: 120px; color: #64748b; font-weight: 500; }
     .detail-value { display: inline-block; font-weight: bold; color: #1e293b; }
-    .next-steps { background-color: #eff6ff; border-radius: 12px; padding: 20px; margin-top: 30px; }
-    .next-steps-title { color: #1e40af; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-    .next-steps ul { margin: 0; padding-left: 20px; font-size: 14px; color: #1e3a8a; }
-    .next-steps li { margin-bottom: 8px; }
-    .footer { padding: 30px; background-color: #ffffff; font-size: 14px; color: #64748b; }
-    .footer-bottom { border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; font-size: 12px; }
+    .next-steps { background-color: #eff6ff; border-radius: 12px; padding: 15px; margin-top: 25px; }
+    .next-steps-title { color: #1e40af; font-weight: bold; margin-bottom: 8px; font-size: 14px; }
+    .next-steps ul { margin: 0; padding-left: 18px; font-size: 13px; color: #1e3a8a; }
+    .next-steps li { margin-bottom: 6px; }
+    .footer { padding: 25px; background-color: #ffffff; font-size: 13px; color: #64748b; }
+    .footer-bottom { border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; font-size: 11px; }
   </style>
 </head>
 <body>
