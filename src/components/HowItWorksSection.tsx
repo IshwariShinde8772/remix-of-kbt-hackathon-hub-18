@@ -19,16 +19,20 @@ type Highlight = "primary" | "green" | "done" | undefined;
 ───────────────────────────────────────────── */
 const StepCard = ({ step, highlight }: { step: typeof steps[0]; highlight?: Highlight }) => {
   const borderClass =
-    highlight === "green"
+    highlight === "done"
+      ? "border-muted-foreground/40 border-2 opacity-70"
+      : highlight === "green"
       ? "border-success border-2"
       : highlight === "primary"
       ? "border-primary border-2 border-dashed"
       : "border-border border";
 
-  const badgeBg = highlight === "green" ? "bg-success" : "gradient-primary";
+  const badgeBg = highlight === "done" ? "bg-muted-foreground" : highlight === "green" ? "bg-success" : "gradient-primary";
 
   const dateBg =
-    highlight === "green"
+    highlight === "done"
+      ? "bg-muted-foreground/10 text-muted-foreground line-through"
+      : highlight === "green"
       ? "bg-success/10 text-success"
       : "bg-primary/10 text-primary";
 
