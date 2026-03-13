@@ -1,10 +1,10 @@
 import { Rocket, ArrowRight, ArrowDown, ArrowLeft } from "lucide-react";
 
 const steps = [
-  { number: 1, title: "Industry Problem Statement", description: "Industries submit their real-world problem statements through our registration portal.", date: "15 FEB 2026" },
-  { number: 2, title: "Screening & Shortlisting", description: "Problem statements are checked for clarity, completeness, and required structure.", date: "28 FEB 2026" },
-  { number: 3, title: "Intimation to Industry", description: "Shortlisted problem statement details are communicated to participating industries.", date: "5 MAR 2026" },
-  { number: 4, title: "Open to Students", description: "KBT Avinyathon 2026 opens for student participation with all selected problem statements.", date: "10 MAR 2026" },
+  { number: 1, title: "Industry Problem Statement", description: "Industries submit their real-world problem statements through our registration portal.", date: "15 FEB 2026", done: true },
+  { number: 2, title: "Screening & Shortlisting", description: "Problem statements are checked for clarity, completeness, and required structure.", date: "28 FEB 2026", done: true },
+  { number: 3, title: "Intimation to Industry", description: "Shortlisted problem statement details are communicated to participating industries.", date: "5 MAR 2026", done: true },
+  { number: 4, title: "Open to Students", description: "KBT Avinyathon 2026 opens for student participation with all selected problem statements. Students can also submit their innovative solutions — this panel is now open for students!", date: "10 MAR 2026" },
   { number: 5, title: "Last Date of Registration", description: "Final deadline for student teams to register for the hackathon.", date: "24 MAR 2026" },
   { number: 6, title: "Solution Submission", description: "Student teams develop and submit their innovative solutions for the challenges.", date: "5 APR 2026" },
   { number: 7, title: "Scrutiny of Solutions", description: "Expert panel screens and evaluates the best solutions from all submissions.", date: "9 APR 2026" },
@@ -12,23 +12,27 @@ const steps = [
   { number: 9, title: "Winner Announcement", description: "Winners are announced and prizes are distributed during the valedictory ceremony.", date: "11 APR 2026" },
 ];
 
-type Highlight = "primary" | "green" | undefined;
+type Highlight = "primary" | "green" | "done" | undefined;
 
 /* ─────────────────────────────────────────────
    STEP CARD  (used by all layouts)
 ───────────────────────────────────────────── */
 const StepCard = ({ step, highlight }: { step: typeof steps[0]; highlight?: Highlight }) => {
   const borderClass =
-    highlight === "green"
+    highlight === "done"
+      ? "border-muted-foreground/40 border-2 opacity-70"
+      : highlight === "green"
       ? "border-success border-2"
       : highlight === "primary"
       ? "border-primary border-2 border-dashed"
       : "border-border border";
 
-  const badgeBg = highlight === "green" ? "bg-success" : "gradient-primary";
+  const badgeBg = highlight === "done" ? "bg-muted-foreground" : highlight === "green" ? "bg-success" : "gradient-primary";
 
   const dateBg =
-    highlight === "green"
+    highlight === "done"
+      ? "bg-muted-foreground/10 text-muted-foreground line-through"
+      : highlight === "green"
       ? "bg-success/10 text-success"
       : "bg-primary/10 text-primary";
 
@@ -78,10 +82,12 @@ const VerticalArrow = ({ className = "" }: { className?: string }) => (
    MOBILE / TABLET  – vertical timeline card
 ───────────────────────────────────────────── */
 const TimelineStep = ({ step, highlight, isLast }: { step: typeof steps[0]; highlight?: Highlight; isLast?: boolean }) => {
-  const badgeBg = highlight === "green" ? "bg-success" : "gradient-primary";
-  const dateBg = highlight === "green" ? "bg-success/10 text-success" : "bg-primary/10 text-primary";
+  const badgeBg = highlight === "done" ? "bg-muted-foreground" : highlight === "green" ? "bg-success" : "gradient-primary";
+  const dateBg = highlight === "done" ? "bg-muted-foreground/10 text-muted-foreground line-through" : highlight === "green" ? "bg-success/10 text-success" : "bg-primary/10 text-primary";
   const borderClass =
-    highlight === "green"
+    highlight === "done"
+      ? "border-muted-foreground/40 border-2 opacity-70"
+      : highlight === "green"
       ? "border-success border-2"
       : highlight === "primary"
       ? "border-primary border-2 border-dashed"
@@ -128,6 +134,9 @@ const HowItWorksSection = () => {
 
   // Highlight map for timeline views
   const highlights: Record<number, Highlight> = {
+    1: "done",
+    2: "done",
+    3: "done",
     5: "primary",
     9: "green",
   };
