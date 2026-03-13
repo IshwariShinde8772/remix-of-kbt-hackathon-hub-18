@@ -132,6 +132,9 @@ const HowItWorksSection = () => {
 
   // Highlight map for timeline views
   const highlights: Record<number, Highlight> = {
+    1: "done",
+    2: "done",
+    3: "done",
     5: "primary",
     9: "green",
   };
