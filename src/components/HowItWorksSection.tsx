@@ -85,7 +85,9 @@ const TimelineStep = ({ step, highlight, isLast }: { step: typeof steps[0]; high
   const badgeBg = highlight === "done" ? "bg-muted-foreground" : highlight === "green" ? "bg-success" : "gradient-primary";
   const dateBg = highlight === "done" ? "bg-muted-foreground/10 text-muted-foreground line-through" : highlight === "green" ? "bg-success/10 text-success" : "bg-primary/10 text-primary";
   const borderClass =
-    highlight === "green"
+    highlight === "done"
+      ? "border-muted-foreground/40 border-2 opacity-70"
+      : highlight === "green"
       ? "border-success border-2"
       : highlight === "primary"
       ? "border-primary border-2 border-dashed"
