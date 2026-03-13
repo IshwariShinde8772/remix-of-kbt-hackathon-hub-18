@@ -36,7 +36,17 @@ serve(async (req) => {
 
     // ── 2. Handle JSON Requests (Validation) ──
     if (contentType.includes("application/json")) {
-      const body = await req.json();
+      let body;
+      const rawBody = await req.text();
+      try {
+        body = JSON.parse(rawBody);
+      } catch (e) {
+        console.error("❌ Malformed JSON received. Raw body:", rawBody);
+        return new Response(JSON.stringify({ error: "Invalid request data format." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      
       console.log("📥 Received JSON body:", body);
       const { team_id, college_name, institute_number, action } = body;
 
