@@ -20,11 +20,15 @@ serve(async (req) => {
 
   try {
     // Get API keys from environment
-    const lovableKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const externalKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    // When running on External, SUPABASE_SERVICE_ROLE_KEY = External's key
+    // We need LOVABLE_SERVICE_ROLE_KEY set for the Lovable DB access
+    const lovableKey = Deno.env.get("LOVABLE_SERVICE_ROLE_KEY") || "";
+    const externalKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+    console.log(`🔑 API Keys - Lovable: ${lovableKey ? "✅" : "❌"}, External: ${externalKey ? "✅" : "❌"}`);
 
     if (!lovableKey || !externalKey) {
-      throw new Error("Missing Supabase credentials");
+      throw new Error(`Missing Supabase credentials: lovable=${!!lovableKey}, external=${!!externalKey}`);
     }
 
     // Initialize both database clients
@@ -202,14 +206,22 @@ serve(async (req) => {
       };
 
       // Log to Lovable
-      await lovable.from("activity_logs").insert(logEntry).catch((e) => {
-        console.error(`⚠️ Lovable log error: ${e.message}`);
-      });
+      const { error: lovLogError } = await lovable
+        .from("activity_logs")
+        .insert(logEntry);
+      
+      if (lovLogError) {
+        console.error(`⚠️ Lovable log error: ${lovLogError.message}`);
+      }
 
       // Log to External
-      await external.from("activity_logs").insert(logEntry).catch((e) => {
-        console.error(`⚠️ External log error: ${e.message}`);
-      });
+      const { error: extLogError } = await external
+        .from("activity_logs")
+        .insert(logEntry);
+      
+      if (extLogError) {
+        console.error(`⚠️ External log error: ${extLogError.message}`);
+      }
 
       console.log(`✅ Logged submission for team ${teamId}`);
 
