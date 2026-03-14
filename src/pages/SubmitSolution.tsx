@@ -19,6 +19,9 @@ const SubmitSolution = () => {
   const [collegeName, setCollegeName] = useState("");
   const [instituteNumber, setInstituteNumber] = useState("");
   const [verifiedTeam, setVerifiedTeam] = useState<{ 
+    team_name: string,
+    leader_name: string,
+    college_name: string,
     problem_statement: string, 
     problem_description: string,
     domain: string,
@@ -29,7 +32,6 @@ const SubmitSolution = () => {
   const [hasSearched, setHasSearched] = useState(false);
 
   // Step 2: Submit solution
-  const [companyName, setCompanyName] = useState("");
   const [solutionFile, setSolutionFile] = useState<File | null>(null);
   const [youtubeLink, setYoutubeLink] = useState("");
   const [description, setDescription] = useState("");

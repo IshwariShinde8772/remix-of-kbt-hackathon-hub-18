@@ -120,6 +120,13 @@ serve(async (req) => {
     // STEP 4: Prepare registration data (matching actual table schema)
     // ═══════════════════════════════════════════════════════════════
     const membersArray = data.members || [];
+    
+    // Ensure company_name column exists
+    try {
+      await db.rpc("execute_sql", { sql_query: `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS company_name TEXT;` });
+    } catch (e) {
+      console.warn("⚠️ Could not add company_name column via RPC, it might already exist or RPC is missing");
+    }
 
     // Build members JSON for the members JSONB column
     const membersJson = membersArray.map((member: any) => ({
@@ -140,6 +147,7 @@ serve(async (req) => {
       problem_statement_uuid: data.problem_statement_uuid || null,
       problem_statement_title: data.problem_statement_title || "Unknown Problem",
       problem_description: data.problem_description || "No description",
+      company_name: data.company_name || "N/A",
       mentor_name: data.mentor_name || "N/A",
       mentor_email: data.mentor_email || "N/A",
       mentor_contact: data.mentor_contact || "N/A",

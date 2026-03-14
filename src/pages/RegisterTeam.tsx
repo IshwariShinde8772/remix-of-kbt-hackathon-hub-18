@@ -240,6 +240,7 @@ const RegisterTeam = () => {
             selected_domain: selectedDomain,
             problem_statement_title: selectedProblem?.problem_title || "",
             problem_description: selectedProblem?.problem_description || "",
+            company_name: selectedProblem?.company_name || "",
             approach_description: selectedProblem?.problem_description || "", // Keep for legacy if needed
             mentor_name: mentorName,
             mentor_email: mentorEmail,
