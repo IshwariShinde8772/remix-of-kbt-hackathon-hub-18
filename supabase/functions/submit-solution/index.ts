@@ -56,28 +56,33 @@ serve(async (req) => {
           );
         }
 
-        // Check in database and fetch problem statement details
+        console.log(`🔍 Validating team: ${team_id}`);
+        
+        // Check in database and fetch problem statement details and registration_id
         const { data: team, error: findError } = await db
           .from(regTable)
-          .select(`${teamIdCol}, team_name, leader_email, problem_statement_title, domain`)
+          .select(`${teamIdCol}, team_name, leader_email, problem_statement_title, domain, registration_id`)
           .eq(teamIdCol, team_id.trim())
           .ilike("college_name", `%${college_name?.trim() || ""}%`)
           .eq("institute_number", institute_number?.trim() || "")
           .single();
 
         if (findError || !team) {
+          console.error(`❌ Team validation failed: ${findError?.message || "Team not found"}`);
           return new Response(
             JSON.stringify({ error: "Invalid Team ID or college details" }),
             { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
+        console.log(`✅ Team validated: ${team.team_name}`);
         return new Response(
           JSON.stringify({ 
             success: true, 
             team_name: team.team_name,
             problem_statement: team.problem_statement_title || "Problem Statement",
-            domain: team.domain || "Unknown Domain"
+            domain: team.domain || "Unknown Domain",
+            registration_id: team.registration_id
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -93,15 +98,16 @@ serve(async (req) => {
       const teamId = formData.get("team_id") as string;
       const collegeName = formData.get("college_name") as string;
       const instituteNumber = formData.get("institute_number") as string;
-      const companyName = formData.get("company_name") as string;
+      const solutionTitle = formData.get("solution_title") as string;
+      const solutionDescription = formData.get("solution_description") as string;
       const youtubeLink = formData.get("youtube_link") as string;
-      const description = formData.get("description") as string;
       const pdfFile = formData.get("solution_file") as File;
 
       // Validate inputs
       const errors = [];
       if (!teamId) errors.push("Team ID");
-      if (!companyName) errors.push("Company Name");
+      if (!solutionTitle) errors.push("Solution Title");
+      if (!solutionDescription) errors.push("Solution Description");
       if (!youtubeLink) errors.push("YouTube link");
       if (!pdfFile) errors.push("Solution PDF");
 
@@ -115,20 +121,24 @@ serve(async (req) => {
       // ───────────────────────────────────────────────────────────────
       // Step 1: Verify team exists and get their details
       // ───────────────────────────────────────────────────────────────
+      console.log(`📍 Verifying team for solution submission: ${teamId}`);
       const { data: teamData, error: teamError } = await db
         .from(regTable)
-        .select(`${teamIdCol}, team_name, leader_email`)
+        .select(`${teamIdCol}, team_name, leader_email, registration_id`)
         .eq(teamIdCol, teamId)
         .ilike("college_name", `%${collegeName || ""}%`)
         .eq("institute_number", instituteNumber || "")
         .single();
 
       if (teamError || !teamData) {
+        console.error(`❌ Team verification failed: ${teamError?.message || "Not found"}`);
         return new Response(
           JSON.stringify({ error: "Team verification failed. Invalid credentials." }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      
+      console.log(`✅ Team verified: ${teamData.team_name}`);
 
       // ───────────────────────────────────────────────────────────────
       // Step 2: Upload PDF to storage
@@ -151,24 +161,29 @@ serve(async (req) => {
       // ───────────────────────────────────────────────────────────────
       const submissionData = {
         team_id: teamId,
-        company_name: companyName,
-        youtube_link: youtubeLink,
-        description: description || "No description provided",
+        registration_id: teamData.registration_id,
+        solution_title: solutionTitle,
+        solution_description: solutionDescription,
+        video_link: youtubeLink,
         solution_pdf_url: fileName,
-        status: "pending",
-        submitted_at: new Date().toISOString(),
+        status: "submitted",
       };
 
       // Insert to database
+      console.log(`📝 Inserting solution to team_solutions table`);
+      console.log(`📦 Registration ID: ${teamData.registration_id}`);
+      console.log(`📦 Solution Title: ${solutionTitle}`);
+      
       const { data: subData, error: subError } = await db
         .from(subTable)
-        .insert(submissionData)
+        .insert([submissionData])
         .select("id")
         .single();
 
       if (subError) {
         console.error(`❌ Submission insert error: ${subError.message}`);
         console.error(`❌ Error code: ${subError.code}`);
+        console.error(`❌ Error hint: ${subError.hint}`);
         console.error(`❌ Full error: ${JSON.stringify(subError)}`);
         throw new Error(`Submission insert failed: ${subError.message}`);
       }
@@ -182,11 +197,13 @@ serve(async (req) => {
         timestamp: new Date().toISOString(),
         action: "solution_submission",
         team_id: teamId,
+        registration_id: teamData.registration_id,
         user_email: teamData.leader_email,
         details: {
           team_name: teamData.team_name,
+          solution_title: solutionTitle,
           file_name: fileName,
-          youtube_link: youtubeLink,
+          video_link: youtubeLink,
         },
         status: "success",
       };

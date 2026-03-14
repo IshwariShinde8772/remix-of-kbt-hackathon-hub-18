@@ -39,10 +39,10 @@ const SubmitSolution = () => {
   const [hasSearched, setHasSearched] = useState(false);
 
   // Step 2: Submit solution
-  const [companyName, setCompanyName] = useState("");
+  const [solutionTitle, setSolutionTitle] = useState("");
+  const [solutionDescription, setSolutionDescription] = useState("");
   const [solutionFile, setSolutionFile] = useState<File | null>(null);
   const [youtubeLink, setYoutubeLink] = useState("");
-  const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submittedTeamId, setSubmittedTeamId] = useState("");
@@ -124,7 +124,8 @@ const SubmitSolution = () => {
   const handleSubmit = async () => {
     if (isSubmitting) return; // Prevent double-click
     if (!verifiedTeam) { toast.error("Please verify your team first"); scrollToTop(); return; }
-    if (!companyName.trim()) { toast.error("Company name is required"); scrollToTop(); return; }
+    if (!solutionTitle.trim()) { toast.error("Solution title is required"); scrollToTop(); return; }
+    if (!solutionDescription.trim()) { toast.error("Solution description is required"); scrollToTop(); return; }
     if (!youtubeLink.trim()) { toast.error("YouTube video link is required"); scrollToTop(); return; }
     if (!validateYoutubeLink(youtubeLink)) { toast.error("Please enter a valid YouTube link"); scrollToTop(); return; }
     if (!solutionFile) { toast.error("Please upload your solution PDF"); scrollToTop(); return; }
@@ -135,9 +136,9 @@ const SubmitSolution = () => {
       formData.append("team_id", teamIdInput.trim());
       formData.append("college_name", collegeName.trim());
       formData.append("institute_number", instituteNumber.trim());
-      formData.append("company_name", companyName.trim());
+      formData.append("solution_title", solutionTitle.trim());
+      formData.append("solution_description", solutionDescription.trim());
       formData.append("youtube_link", youtubeLink.trim());
-      formData.append("description", description.trim() || "");
       formData.append("solution_file", solutionFile);
 
       const { data: result, error: invokeError } = await edgeFunctionsClient.functions.invoke("submit-solution", {
@@ -307,16 +308,30 @@ const SubmitSolution = () => {
                         </div>
                       </div>
 
-                      {/* Company/Organization Name */}
+                      {/* Solution Title */}
                       <div className="space-y-2">
-                        <Label className="text-base font-semibold">Company / Organization Name *</Label>
+                        <Label className="text-base font-semibold">Solution Title *</Label>
                         <Input
-                          placeholder="Enter company or organization name"
-                          value={companyName}
-                          onChange={(e) => setCompanyName(e.target.value)}
+                          placeholder="Enter a concise title for your solution"
+                          value={solutionTitle}
+                          onChange={(e) => setSolutionTitle(e.target.value)}
                         />
                         <p className="text-xs text-muted-foreground">
-                          The company or organization you are working with on this solution.
+                          A brief, descriptive title for your solution.
+                        </p>
+                      </div>
+
+                      {/* Solution Description */}
+                      <div className="space-y-2">
+                        <Label className="text-base font-semibold">Solution Description *</Label>
+                        <Textarea
+                          placeholder="Describe your solution approach, key features, and how it solves the problem"
+                          value={solutionDescription}
+                          onChange={(e) => setSolutionDescription(e.target.value)}
+                          className="min-h-32"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Provide a detailed explanation of your solution (500-1000 words recommended).
                         </p>
                       </div>
 
