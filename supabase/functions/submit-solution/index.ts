@@ -5,8 +5,11 @@ import nodemailer from "npm:nodemailer";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const DB_LOVABLE = "https://wunqjksrgdppzcucwcyd.supabase.co";
+const DB_EXTERNAL = "https://lxawemydhhmqjahttrlb.supabase.co";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,165 +19,296 @@ serve(async (req) => {
   const contentType = req.headers.get("content-type") || "";
 
   try {
-    const LovableUrl = "https://wunqjksrgdppzcucwcyd.supabase.co";
-    // Using the EXTERNAL key which in this context corresponds to the Lovable key
-    let LovableKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") || "";
-    
-    // Fallback if someone didn't set EXTERNAL keys, but they set SUPABASE_URL to lovable
-    if (Deno.env.get("SUPABASE_URL")?.includes("wunqjksrgdppzcucwcyd")) {
-        LovableKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || LovableKey;
+    // Get API keys from environment
+    const lovableKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const externalKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+    if (!lovableKey || !externalKey) {
+      throw new Error("Missing Supabase credentials");
     }
 
-    if (!LovableKey) {
-      console.error("❌ Missing Lovable Supabase key in environment variables");
-      throw new Error("Server configuration error");
-    }
+    // Initialize both database clients
+    const lovable = createClient(DB_LOVABLE, lovableKey);
+    const external = createClient(DB_EXTERNAL, externalKey);
 
-    const supabase = createClient(LovableUrl, LovableKey);
+    const regTable = "registered_teams";
+    const subTable = "submissions";
+    const teamIdCol = "team_id";
 
-    const RegTable = "registered_teams";
-    const SolTable = "submissions";
-    const IdCol = "team_id";
-    const ProbTitleCol = "selected_problem_id";
-
-    // ── 1. Handle JSON Requests (Validation) ──
+    // ═══════════════════════════════════════════════════════════════
+    // VALIDATION MODE: Check team exists
+    // ═══════════════════════════════════════════════════════════════
     if (contentType.includes("application/json")) {
       let body;
-      const rawBody = await req.text();
       try {
-        body = JSON.parse(rawBody);
+        body = await req.json();
       } catch (e: any) {
-        return new Response(JSON.stringify({ error: "Invalid request data format." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(
+          JSON.stringify({ error: "Invalid JSON request" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-      
-      const { team_id, college_name, institute_number, action } = body;
 
-      if (action === "validate") {
-        if (!team_id) throw new Error("Team ID is required for validation");
+      if (body.action === "validate") {
+        const { team_id, college_name, institute_number } = body;
 
-        const { data: team, error: findError } = await supabase
-          .from(RegTable)
-          .select(`${IdCol}, team_name, college_name, institute_number, leader_email, ${ProbTitleCol}`)
-          .eq(IdCol, team_id.trim())
+        if (!team_id) {
+          return new Response(
+            JSON.stringify({ error: "Team ID is required" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Check in Lovable first
+        const { data: team, error: findError } = await lovable
+          .from(regTable)
+          .select(`${teamIdCol}, team_name, leader_email`)
+          .eq(teamIdCol, team_id.trim())
           .ilike("college_name", `%${college_name?.trim() || ""}%`)
           .eq("institute_number", institute_number?.trim() || "")
-          .maybeSingle();
+          .single();
 
         if (findError || !team) {
-          return new Response(JSON.stringify({ error: "Invalid Team ID, College Name, or Institute Number." }), {
-            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
+          return new Response(
+            JSON.stringify({ error: "Invalid Team ID or college details" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
 
-        let problemStatement = "General Problem";
-        if (team.selected_problem_id) {
-          const { data: prob } = await supabase.from("problem_statements").select("problem_title").eq("id", team.selected_problem_id).maybeSingle();
-          if (prob) problemStatement = prob.problem_title;
-        }
-
-        return new Response(JSON.stringify({ 
-          success: true, 
-          team_name: team.team_name,
-          problem_statement: problemStatement
-        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(
+          JSON.stringify({ success: true, team_name: team.team_name }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     }
 
-    // ── 2. Handle Multipart Requests (Submission) ──
+    // ═══════════════════════════════════════════════════════════════
+    // SUBMISSION MODE: Handle multipart form data
+    // ═══════════════════════════════════════════════════════════════
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
-      
+
       const teamId = formData.get("team_id") as string;
-      const college = formData.get("college_name") as string;
-      const instId = formData.get("institute_number") as string;
+      const collegeName = formData.get("college_name") as string;
+      const instituteNumber = formData.get("institute_number") as string;
       const youtubeLink = formData.get("youtube_link") as string;
       const description = formData.get("description") as string;
       const pdfFile = formData.get("solution_file") as File;
 
-      if (!teamId || !youtubeLink || !pdfFile) {
-        return new Response(JSON.stringify({ error: "Team ID, YouTube video link, and solution PDF are required." }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+      // Validate inputs
+      const errors = [];
+      if (!teamId) errors.push("Team ID");
+      if (!youtubeLink) errors.push("YouTube link");
+      if (!pdfFile) errors.push("Solution PDF");
+
+      if (errors.length > 0) {
+        return new Response(
+          JSON.stringify({ error: `Missing required fields: ${errors.join(", ")}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      // ── Step A: Secondary Verification ──
-      const { data: teamCheck } = await supabase
-        .from(RegTable)
-        .select(`${IdCol}, team_name, leader_email`)
-        .eq(IdCol, teamId)
-        .ilike("college_name", `%${college || ""}%`)
-        .eq("institute_number", instId || "")
-        .maybeSingle();
+      // ───────────────────────────────────────────────────────────────
+      // Step 1: Verify team exists and get their details
+      // ───────────────────────────────────────────────────────────────
+      const { data: teamData, error: teamError } = await lovable
+        .from(regTable)
+        .select(`${teamIdCol}, team_name, leader_email`)
+        .eq(teamIdCol, teamId)
+        .ilike("college_name", `%${collegeName || ""}%`)
+        .eq("institute_number", instituteNumber || "")
+        .single();
 
-      if (!teamCheck) {
-        return new Response(JSON.stringify({ error: "Authentication failed. Details do not match registration." }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+      if (teamError || !teamData) {
+        return new Response(
+          JSON.stringify({ error: "Team verification failed. Invalid credentials." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      // ── Step B: Storage Upload ──
+      // ───────────────────────────────────────────────────────────────
+      // Step 2: Upload PDF to storage
+      // ───────────────────────────────────────────────────────────────
       const fileName = `${teamId}-${Date.now()}.pdf`;
       const fileBuffer = await pdfFile.arrayBuffer();
 
-      const { error: uploadError } = await supabase.storage.from("solutions").upload(fileName, fileBuffer, { contentType: "application/pdf" });
-      if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+      const { error: uploadError } = await lovable.storage
+        .from("solutions")
+        .upload(fileName, fileBuffer, { contentType: "application/pdf" });
 
-      // ── Step C: Database Insert ──
-      const insertData = {
-        team_id: teamId, 
-        description: description || "N/A", 
-        youtube_link: youtubeLink, 
-        solution_pdf_url: fileName, 
-        status: "pending"
+      if (uploadError) {
+        throw new Error(`File upload failed: ${uploadError.message}`);
+      }
+
+      console.log(`✅ PDF uploaded: ${fileName}`);
+
+      // ───────────────────────────────────────────────────────────────
+      // Step 3: Create submission record
+      // ───────────────────────────────────────────────────────────────
+      const submissionData = {
+        team_id: teamId,
+        youtube_link: youtubeLink,
+        description: description || "No description provided",
+        solution_pdf_url: fileName,
+        status: "pending",
+        submitted_at: new Date().toISOString(),
       };
 
-      const { data: result, error: insertError } = await supabase.from(SolTable).insert(insertData).select("id").single();
-      if (insertError) throw insertError;
+      // Insert to Lovable
+      const { data: lovSubData, error: lovSubError } = await lovable
+        .from(subTable)
+        .insert(submissionData)
+        .select("id")
+        .single();
 
-      // ── Step D: Background Email ──
-      const sendEmail = async () => {
+      if (lovSubError) {
+        throw new Error(`Submission insert failed: ${lovSubError.message}`);
+      }
+
+      // Insert to External (non-blocking)
+      const { data: extSubData, error: extSubError } = await external
+        .from(subTable)
+        .insert(submissionData)
+        .select("id")
+        .single();
+
+      if (extSubError) {
+        console.error(`⚠️ External submission sync warning: ${extSubError.message}`);
+      } else {
+        console.log(`✅ Synced submission to external database`);
+      }
+
+      // ───────────────────────────────────────────────────────────────
+      // Step 4: Log activity to both databases
+      // ───────────────────────────────────────────────────────────────
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        action: "solution_submission",
+        team_id: teamId,
+        user_email: teamData.leader_email,
+        details: {
+          team_name: teamData.team_name,
+          file_name: fileName,
+          youtube_link: youtubeLink,
+        },
+        status: "success",
+      };
+
+      // Log to Lovable
+      await lovable.from("activity_logs").insert(logEntry).catch((e) => {
+        console.error(`⚠️ Lovable log error: ${e.message}`);
+      });
+
+      // Log to External
+      await external.from("activity_logs").insert(logEntry).catch((e) => {
+        console.error(`⚠️ External log error: ${e.message}`);
+      });
+
+      console.log(`✅ Logged submission for team ${teamId}`);
+
+      // ───────────────────────────────────────────────────────────────
+      // Step 5: Send confirmation email (non-blocking)
+      // ───────────────────────────────────────────────────────────────
+      const sendSubmissionEmail = async () => {
+        const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+        const gmailUser = "kbtavinyathon@gmail.com";
+
+        if (!gmailAppPassword) {
+          console.error("⚠️ GMAIL_APP_PASSWORD not set - skipping email");
+          return;
+        }
+
         try {
-          const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
-          const gmailUser = "kbtavinyathon@gmail.com";
+          const emailHtml = `<!DOCTYPE html>
+<html>
+<head><style>
+  body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
+  .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+  .header { background: #1e293b; padding: 25px; text-align: center; color: white; }
+  .header h1 { margin: 0; font-size: 22px; font-weight: 800; }
+  .content { padding: 30px; }
+  .success-box { background: #dcfce7; border: 1px solid #86efac; padding: 15px; border-radius: 8px; margin: 20px 0; }
+  .success-box p { margin: 5px 0; font-size: 14px; color: #166534; }
+  .footer { background: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+</style></head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✅ SUBMISSION CONFIRMED</h1>
+    </div>
+    <div class="content">
+      <p style="font-size: 16px;">Congratulations <strong>${teamData.team_name}</strong>!</p>
+      <p>Your solution for <strong>KBT Avinyathon 2026</strong> has been successfully received.</p>
+      
+      <div class="success-box">
+        <p><strong>Team ID:</strong> ${teamId}</p>
+        <p><strong>File Name:</strong> ${fileName}</p>
+        <p><strong>YouTube Link:</strong> <a href="${youtubeLink}" style="color: #166534; text-decoration: underline;">${youtubeLink}</a></p>
+        <p><strong>Status:</strong> Under Review 📋</p>
+      </div>
 
-          if (gmailPass && teamCheck.leader_email) {
-            const transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: gmailUser, pass: gmailPass } });
-            await transporter.sendMail({
-              from: `"KBT Avinyathon 2026" <${gmailUser}>`,
-              to: teamCheck.leader_email,
-              subject: `Solution Submitted Successfully – Team: ${teamCheck.team_name}`,
-              html: `<div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-                <div style="background: #1e293b; color: white; padding: 20px; text-align: center;"><h2>SUBMISSION CONFIRMED</h2></div>
-                <div style="padding: 20px; line-height: 1.6;">
-                  <p>Congratulations <b>${teamCheck.team_name}</b>,</p>
-                  <p>Your solution for <b>KBT Avinyathon 2026</b> has been successfully uploaded.</p>
-                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin: 20px 0;">
-                    <p style="margin: 0; font-size: 13px; color: #64748b;">TEAM ID: <b style="color: #2563eb;">${teamId}</b></p>
-                    <p style="margin: 5px 0 0; font-size: 13px; color: #64748b;">PDF FILE: <b>${fileName}</b></p>
-                  </div>
-                  <p>Our judges will review your submission soon. Good luck!</p>
-                </div>
-                <div style="background: #f1f5f9; padding: 15px; text-align: center; font-size: 12px; color: #64748b;">KBT College of Engineering, Nashik</div>
-              </div>`
-            });
-          }
-        } catch (bgError) {
-          console.error("⚠️ Background work warning:", bgError);
+      <p>Our judges will evaluate your submission shortly. Best of luck! 🚀</p>
+    </div>
+    <div class="footer">
+      <p>© 2026 KBT Avinyathon • KBTCOE Nashik<br>
+      <a href="mailto:kbtavinyathon@gmail.com" style="color: #2563eb; text-decoration: none;">kbtavinyathon@gmail.com</a></p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+          const transporter = nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
+            auth: { user: gmailUser, pass: gmailAppPassword },
+          });
+
+          await transporter.sendMail({
+            from: `"KBT Avinyathon 2026" <${gmailUser}>`,
+            to: teamData.leader_email,
+            cc: ["kbtavinyathon@gmail.com"],
+            subject: `✅ Solution Submitted Successfully – Team ID: ${teamId}`,
+            html: emailHtml,
+          });
+
+          console.log(`✅ Submission email sent to ${teamData.leader_email}`);
+        } catch (emailError: any) {
+          console.error(`⚠️ Email send failed: ${emailError.message}`);
         }
       };
 
-      if ((globalThis as any).EdgeRuntime) { (globalThis as any).EdgeRuntime.waitUntil(sendEmail()); }
-      else { sendEmail(); }
+      // Execute email in background
+      if ((globalThis as any).EdgeRuntime) {
+        (globalThis as any).EdgeRuntime.waitUntil(sendSubmissionEmail());
+      } else {
+        sendSubmissionEmail().catch((e) => console.error(`Email error: ${e}`));
+      }
 
-      return new Response(JSON.stringify({ success: true, submission_id: result.id }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // ───────────────────────────────────────────────────────────────
+      // Step 6: Return success response
+      // ───────────────────────────────────────────────────────────────
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Solution submitted successfully!",
+          submission_id: lovSubData.id,
+          synced_to: extSubData ? "both_databases" : "primary_database",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    return new Response(JSON.stringify({ error: "Unsupported request format." }), { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({ error: "Unsupported request format" }),
+      { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
   } catch (error: any) {
-    console.error("❌ Submission error:", error);
-    return new Response(JSON.stringify({ error: "Submission failed. Please try again later." }), { 
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    });
+    console.error(`❌ Submission error: ${error.message}`);
+    return new Response(
+      JSON.stringify({ error: error.message || "Submission failed. Please try again later." }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });

@@ -6,8 +6,11 @@ import nodemailer from "npm:nodemailer";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const DB_LOVABLE = "https://wunqjksrgdppzcucwcyd.supabase.co";
+const DB_EXTERNAL = "https://lxawemydhhmqjahttrlb.supabase.co";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -18,60 +21,57 @@ serve(async (req) => {
     const data = await req.json();
     const { reg_file_data, reg_file_name, reg_file_type } = data;
 
-    const LovableUrl = "https://wunqjksrgdppzcucwcyd.supabase.co";
-    // Using the EXTERNAL key which in this context corresponds to the Lovable key
-    let LovableKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") || "";
-    
-    // Fallback if someone didn't set EXTERNAL keys, but they set SUPABASE_URL to lovable
-    if (Deno.env.get("SUPABASE_URL")?.includes("wunqjksrgdppzcucwcyd")) {
-        LovableKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || LovableKey;
+    // Get API keys from environment
+    const lovableKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const externalKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+    if (!lovableKey || !externalKey) {
+      throw new Error("Missing Supabase credentials");
     }
 
-    if (!LovableKey) {
-      console.error("❌ Missing Lovable Supabase key in environment variables");
-      throw new Error("Server configuration error");
-    }
-
-    const supabase = createClient(LovableUrl, LovableKey);
+    // Initialize both database clients
+    const lovable = createClient(DB_LOVABLE, lovableKey);
+    const external = createClient(DB_EXTERNAL, externalKey);
 
     const primaryTable = "registered_teams";
     const idColumn = "team_id";
 
-    // Handle file upload if provided
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 1: Handle file upload (if provided)
+    // ═══════════════════════════════════════════════════════════════
     let finalRegFormUrl = data.registration_form_url || null;
-    let decodedFileData: Uint8Array | null = null;
-
+    
     if (reg_file_data && reg_file_name) {
       try {
-        decodedFileData = decode(reg_file_data);
-      } catch (err) {
-        throw new Error("Invalid file data encoding");
+        const decodedFileData = decode(reg_file_data);
+        const fileName = `${data.college_name?.replace(/[^a-zA-Z0-9]/g, "_") || "college"}_${Date.now()}_${reg_file_name}`;
+        const contentType = reg_file_type || "application/pdf";
+
+        // Upload to Lovable storage
+        const { error: uploadError } = await lovable.storage
+          .from("solutions")
+          .upload(`registrations/${fileName}`, decodedFileData, { contentType, upsert: false });
+
+        if (uploadError) {
+          throw new Error(`File upload failed: ${uploadError.message}`);
+        }
+
+        const { data: { publicUrl } } = lovable.storage
+          .from("solutions")
+          .getPublicUrl(`registrations/${fileName}`);
+
+        finalRegFormUrl = publicUrl;
+        console.log(`✅ File uploaded: ${fileName}`);
+      } catch (fileErr: any) {
+        console.error(`⚠️ File upload warning: ${fileErr.message}`);
+        // Continue without file - it's not critical
       }
     }
 
-    if (decodedFileData && reg_file_name) {
-      const fileName = `${data.college_name?.replace(/[^a-zA-Z0-9]/g, "_") || "college"}_${Date.now()}_${reg_file_name}`;
-      const contentType = reg_file_type || "application/pdf";
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("solutions")
-        .upload(`registrations/${fileName}`, decodedFileData, {
-          contentType,
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw new Error(`Failed to upload registration form: ${uploadError.message}`);
-      }
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from("solutions")
-        .getPublicUrl(`registrations/${fileName}`);
-
-      finalRegFormUrl = publicUrl;
-    }
-
-    const { data: existing } = await supabase
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 2: Check for duplicate registration
+    // ═══════════════════════════════════════════════════════════════
+    const { data: existing } = await lovable
       .from(primaryTable)
       .select(idColumn)
       .eq("institute_number", data.institute_number?.trim() || "")
@@ -86,24 +86,28 @@ serve(async (req) => {
       );
     }
 
-    const { count } = await supabase
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 3: Generate team ID
+    // ═══════════════════════════════════════════════════════════════
+    const { count } = await lovable
       .from(primaryTable)
       .select("*", { count: "exact", head: true });
 
     const nextNum = (count || 0) + 1;
     const generatedId = `KBT-${nextNum.toString().padStart(4, "0")}`;
 
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 4: Prepare registration data
+    // ═══════════════════════════════════════════════════════════════
     const membersArray = data.members || [];
-    
-    // Always build the Lovable insert payload format
-    const insertPayload = {
+    const registrationData = {
       team_name: data.team_name || "Unknown Team",
       college_name: data.college_name || "Unknown College",
       institute_number: data.institute_number || "000000",
       leader_name: data.leader_name || "Unknown",
       leader_email: data.leader_email || "unknown@email.com",
       leader_phone: data.leader_phone || "0000000000",
-      approach_description: data.approach_description || data.problem_description || "No description provided",
+      approach_description: data.approach_description || data.problem_description || "No description",
       selected_domain: data.selected_domain || "Software",
       selected_problem_id: data.selected_problem_id || null,
       mentor_name: data.mentor_name || "N/A",
@@ -114,145 +118,149 @@ serve(async (req) => {
       member2_name: membersArray[0]?.name || null,
       member2_email: membersArray[0]?.email || null,
       member2_contact: membersArray[0]?.contact || null,
-      member2_role: "Member",
+      member2_role: membersArray[0] ? "Member" : null,
       member3_name: membersArray[1]?.name || null,
       member3_email: membersArray[1]?.email || null,
       member3_contact: membersArray[1]?.contact || null,
-      member3_role: "Member",
+      member3_role: membersArray[1] ? "Member" : null,
       member4_name: membersArray[2]?.name || null,
       member4_email: membersArray[2]?.email || null,
       member4_contact: membersArray[2]?.contact || null,
-      member4_role: "Member",
+      member4_role: membersArray[2] ? "Member" : null,
       member5_name: membersArray[3]?.name || null,
       member5_email: membersArray[3]?.email || null,
       member5_contact: membersArray[3]?.contact || null,
-      member5_role: "Member",
+      member5_role: membersArray[3] ? "Member" : null,
     };
 
-    const { data: result, error: insertError } = await supabase
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 5: Save to BOTH databases
+    // ═══════════════════════════════════════════════════════════════
+    let lovableResult = null;
+    let externalResult = null;
+
+    // Insert to Lovable (primary)
+    const { data: lovData, error: lovError } = await lovable
       .from(primaryTable)
-      .insert(insertPayload)
+      .insert(registrationData)
       .select(`team_name, ${idColumn}`)
-      .maybeSingle();
+      .single();
 
-    if (insertError) {
-      console.error("Insert error details:", insertError);
-      return new Response(JSON.stringify({ error: "Registration failed. Please try again later." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (lovError) {
+      console.error(`❌ Lovable insert failed: ${lovError.message}`);
+      throw new Error("Registration failed in primary database");
+    }
+    lovableResult = lovData;
+
+    // Insert to External (secondary - non-blocking)
+    const { data: extData, error: extError } = await external
+      .from(primaryTable)
+      .insert(registrationData)
+      .select(`team_name, ${idColumn}`)
+      .single();
+
+    if (extError) {
+      console.error(`⚠️ External database sync warning: ${extError.message}`);
+    } else {
+      externalResult = extData;
+      console.log(`✅ Synced to external database`);
     }
 
-    if (!result) {
-      return new Response(JSON.stringify({ error: "Registration failed. Please try again later." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const teamId = generatedId;
 
-    const teamId = (result as any)[idColumn] || generatedId;
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 6: Log activity to both databases
+    // ═══════════════════════════════════════════════════════════════
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      action: "registration",
+      team_id: teamId,
+      user_email: data.leader_email,
+      details: {
+        team_name: data.team_name,
+        college_name: data.college_name,
+        domain: data.selected_domain,
+        members_count: membersArray.length,
+      },
+      status: "success",
+    };
 
-    // Start background processes (Email ONLY)
-    const backgroundWork = async () => {
+    // Log to Lovable
+    await lovable.from("activity_logs").insert(logEntry).catch((e) => {
+      console.error(`⚠️ Lovable log error: ${e.message}`);
+    });
+
+    // Log to External
+    await external.from("activity_logs").insert(logEntry).catch((e) => {
+      console.error(`⚠️ External log error: ${e.message}`);
+    });
+
+    console.log(`✅ Logged registration for team ${teamId}`);
+
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 7: Send confirmation email (non-blocking)
+    // ═══════════════════════════════════════════════════════════════
+    const sendRegistrationEmail = async () => {
       const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
       const gmailUser = "kbtavinyathon@gmail.com";
 
       if (!gmailAppPassword) {
-        console.error("❌ Skipping email: GMAIL_APP_PASSWORD environment variable is not set.");
+        console.error("⚠️ GMAIL_APP_PASSWORD not set - skipping email");
         return;
       }
 
       try {
         const emailHtml = `<!DOCTYPE html>
 <html>
-<head>
-  <style>
-    body { font-family: 'Inter', -apple-system, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #334155; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
-    .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 25px; text-align: center; color: white; border-bottom: 4px solid #f59e0b; }
-    .header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
-    .header p { margin: 5px 0 0; font-size: 13px; opacity: 0.9; }
-    .content { padding: 30px; }
-    .welcome { font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 10px; }
-    .team-id-box { background: linear-gradient(to right, #eff6ff, #dbeafe); border: 1px solid #bfdbfe; border-radius: 12px; padding: 15px; text-align: center; margin: 25px 0; }
-    .team-id-label { font-size: 12px; font-weight: bold; color: #2563eb; text-transform: uppercase; letter-spacing: 1px; }
-    .team-id-value { font-size: 28px; font-weight: 900; color: #1e3a8a; margin: 5px 0; font-family: monospace; letter-spacing: 2px; }
-    .team-id-warning { font-size: 10px; color: #f59e0b; font-weight: 600; margin-top: 5px; }
-    .details-section { margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
-    .details-title { font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #1e293b; }
-    .detail-row { display: block; margin-bottom: 6px; font-size: 12px; }
-    .detail-label { display: inline-block; width: 120px; color: #64748b; font-weight: 500; }
-    .detail-value { display: inline-block; font-weight: bold; color: #1e293b; }
-    .next-steps { background-color: #eff6ff; border-radius: 12px; padding: 15px; margin-top: 25px; }
-    .next-steps-title { color: #1e40af; font-weight: bold; margin-bottom: 8px; font-size: 14px; }
-    .next-steps ul { margin: 0; padding-left: 18px; font-size: 13px; color: #1e3a8a; }
-    .next-steps li { margin-bottom: 6px; }
-    .footer { padding: 25px; background-color: #ffffff; font-size: 13px; color: #64748b; }
-    .footer-bottom { border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; font-size: 11px; }
-  </style>
-</head>
+<head><style>
+  body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
+  .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+  .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 30px; text-align: center; color: white; }
+  .header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+  .header p { margin: 8px 0 0; font-size: 13px; opacity: 0.9; }
+  .content { padding: 30px; }
+  .team-id-box { background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
+  .team-id-label { font-size: 12px; font-weight: bold; color: #2563eb; text-transform: uppercase; letter-spacing: 1px; }
+  .team-id-value { font-size: 32px; font-weight: 900; color: #1e3a8a; font-family: monospace; letter-spacing: 2px; margin: 10px 0; }
+  .team-id-warning { font-size: 11px; color: #f59e0b; font-weight: 600; }
+  .details { background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px; line-height: 1.6; }
+  .footer { background: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+</style></head>
 <body>
   <div class="container">
     <div class="header">
       <h1>KBT AVINYATHON 2026</h1>
-      <p>STATE-LEVEL HACKATHON • KBTCOE NASHIK</p>
+      <p>State-Level Hackathon • KBTCOE Nashik</p>
     </div>
     <div class="content">
-      <div class="welcome">Congratulations, ${data.leader_name}!</div>
-      <p>Your team <strong>"${data.team_name}"</strong> has been successfully registered for <strong>KBT Avinyathon 2026</strong>. We are thrilled to have you!</p>
+      <p style="font-size: 16px; font-weight: bold;">Congratulations, ${data.leader_name}! 🎉</p>
+      <p>Your team <strong>"${data.team_name}"</strong> has been successfully registered!</p>
       
       <div class="team-id-box">
-        <div class="team-id-label">YOUR UNIQUE TEAM ID</div>
+        <div class="team-id-label">Your Unique Team ID</div>
         <div class="team-id-value">${teamId}</div>
-        <div class="team-id-warning">⚠️ SAVE THIS ID — required for solution submission.</div>
+        <div class="team-id-warning">⚠️ Save this ID – required for solution submission</div>
       </div>
 
-      <div class="details-section">
-        <div class="details-title">📋 Registration Summary</div>
-        <div class="detail-row">
-          <div class="detail-label">Team ID</div>
-          <div class="detail-value" style="color: #2563eb;">${teamId}</div>
-        </div>
-        <div class="detail-row">
-          <div class="detail-label">Leader Name</div>
-          <div class="detail-value">${data.leader_name}</div>
-        </div>
-        <div class="detail-row">
-          <div class="detail-label">College</div>
-          <div class="detail-value">${data.college_name}</div>
-        </div>
-        <div class="detail-row">
-          <div class="detail-label">Institute ID</div>
-          <div class="detail-value">${data.institute_number}</div>
-        </div>
-        <div class="detail-row">
-          <div class="detail-label">Domain</div>
-          <div class="detail-value">${data.selected_domain || "Software"}</div>
-        </div>
-        <div class="detail-row">
-          <div class="detail-label">Email</div>
-          <div class="detail-value">${data.leader_email}</div>
-        </div>
+      <div class="details">
+        <strong>Registration Summary:</strong><br>
+        Team: ${data.team_name}<br>
+        College: ${data.college_name}<br>
+        Domain: ${data.selected_domain || "Software"}<br>
+        Leader Email: ${data.leader_email}<br>
+        Team Members: ${membersArray.length}
       </div>
 
-      <div class="next-steps">
-        <div class="next-steps-title">🚀 WHAT'S NEXT?</div>
-        <ul>
-          <li>Review your problem statement on the <strong>Problem Statements</strong> page.</li>
-          <li>Prepare your prototype/solution as per the Rules & Guidelines.</li>
-          <li>Submit your solution before the deadline using your Team ID.</li>
-        </ul>
-      </div>
+      <p style="font-size: 14px;"><strong>📌 Next Steps:</strong></p>
+      <ol style="padding-left: 20px; font-size: 14px;">
+        <li>Review problem statements on our website</li>
+        <li>Prepare your solution</li>
+        <li>Submit before deadline using Team ID: <strong>${teamId}</strong></li>
+      </ol>
     </div>
     <div class="footer">
-      <p>Warm Regards,<br>
-      <strong>Team KBT Avinyathon</strong><br>
-      KBTCOE Nashik</p>
-      
-      <div class="footer-bottom">
-        <p>© 2026 KBT College of Engineering. All rights reserved.<br>Nashik, Maharashtra, India</p>
-        <p><a href="mailto:kbtavinyathon@gmail.com" style="color: #2563eb; text-decoration: none;">kbtavinyathon@gmail.com</a></p>
-      </div>
+      <p>© 2026 KBT College of Engineering • Nashik<br>
+      <a href="mailto:kbtavinyathon@gmail.com" style="color: #2563eb; text-decoration: none;">kbtavinyathon@gmail.com</a></p>
     </div>
   </div>
 </body>
@@ -268,39 +276,41 @@ serve(async (req) => {
         await transporter.sendMail({
           from: `"KBT Avinyathon 2026" <${gmailUser}>`,
           to: data.leader_email,
-          cc: [
-            "kbtavinyathon@gmail.com",
-            "deshmukh.tejaswini@kbtcoe.org",
-            "kbt.hackathon@kbtcoe.org"
-          ],
-          subject: `Registration Confirmed – Team ID: ${teamId}`,
+          cc: ["kbtavinyathon@gmail.com", "deshmukh.tejaswini@kbtcoe.org"],
+          subject: `✅ Registration Confirmed – Team ID: ${teamId}`,
           html: emailHtml,
         });
 
-      } catch (emailError) {
-        console.error("❌ Email sending failed:", emailError);
+        console.log(`✅ Registration email sent to ${data.leader_email}`);
+      } catch (emailError: any) {
+        console.error(`⚠️ Email send failed: ${emailError.message}`);
       }
     };
 
+    // Execute email in background
     if ((globalThis as any).EdgeRuntime) {
-      (globalThis as any).EdgeRuntime.waitUntil(backgroundWork());
+      (globalThis as any).EdgeRuntime.waitUntil(sendRegistrationEmail());
     } else {
-      backgroundWork();
+      sendRegistrationEmail().catch((e) => console.error(`Email error: ${e}`));
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 8: Return success response
+    // ═══════════════════════════════════════════════════════════════
     return new Response(
       JSON.stringify({
         success: true,
         message: "Registration successful!",
         team_id: teamId,
+        synced_to: externalResult ? "both_databases" : "primary_database",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
-    console.error("❌ Registration error:", error);
+    console.error(`❌ Registration error: ${error.message}`);
     return new Response(
-      JSON.stringify({ error: "An unexpected error occurred. Please try again later." }),
+      JSON.stringify({ error: error.message || "Registration failed. Please try again later." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
