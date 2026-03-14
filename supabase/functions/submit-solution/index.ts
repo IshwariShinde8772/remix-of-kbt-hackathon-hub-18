@@ -285,11 +285,16 @@ serve(async (req) => {
         }
       };
 
-      // Execute email in background
-      if ((globalThis as any).EdgeRuntime) {
-        (globalThis as any).EdgeRuntime.waitUntil(sendSubmissionEmail());
-      } else {
-        sendSubmissionEmail().catch((e) => console.error(`Email error: ${e}`));
+      // Send email with timeout (don't block too long)
+      try {
+        // Try to send email with 5 second timeout
+        await Promise.race([
+          sendSubmissionEmail(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Email timeout")), 5000))
+        ]);
+      } catch (emailTimeoutError: any) {
+        // Log but don't fail submission if email times out
+        console.warn(`⚠️ Email send timeout or error: ${emailTimeoutError.message}`);
       }
 
       // ───────────────────────────────────────────────────────────────
