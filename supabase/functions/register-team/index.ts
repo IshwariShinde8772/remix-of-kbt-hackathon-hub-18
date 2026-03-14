@@ -137,6 +137,7 @@ serve(async (req) => {
       leader_contact: data.leader_contact || data.leader_phone || "0000000000",
       domain: data.domain || data.selected_domain || "Software",
       problem_statement_id: data.problem_statement_id || data.selected_problem_id || "PS-0000",
+      problem_statement_uuid: data.problem_statement_uuid || null,
       problem_statement_title: data.problem_statement_title || "Unknown Problem",
       problem_description: data.problem_description || "No description",
       mentor_name: data.mentor_name || "N/A",
@@ -164,12 +165,13 @@ serve(async (req) => {
       registrationData.team_id = finalTeamId;
 
       console.log(`📍 Attempting insert #${insertAttempt} with team_id: ${finalTeamId}`);
-      console.log(`📦 Inserting into table: ${table}`);
+      console.log(`📦 Table: ${table}`);
+      console.log(`📦 Number of fields: ${Object.keys(registrationData).length}`);
 
       // Insert to database
       const { data: insertData, error: err } = await db
         .from(table)
-        .insert(registrationData)
+        .insert([registrationData])
         .select(`team_name, ${idColumn}`)
         .single();
 
@@ -177,6 +179,7 @@ serve(async (req) => {
         // Success!
         dbResult = insertData;
         console.log(`✅ Successfully inserted with team_id: ${finalTeamId}`);
+        console.log(`✅ Inserted data:`, JSON.stringify(insertData));
         break;
       } else if (err.code === "23505" && insertAttempt < 3) {
         // Duplicate key - try next ID
@@ -193,8 +196,10 @@ serve(async (req) => {
       // Other error - don't retry, throw immediately
       console.error(`❌ Insert failed (attempt ${insertAttempt}): ${err.message}`);
       console.error(`❌ Error code: ${err.code}`);
-      console.error(`❌ Full error: ${JSON.stringify(err)}`);
-      throw new Error(`Database error: ${err.message}`);
+      console.error(`❌ Error hint: ${err.hint}`);
+      console.error(`❌ Full error details:`);
+      console.error(JSON.stringify(err, null, 2));
+      throw new Error(`Database insert error: ${err.message} (Code: ${err.code})`);
     }
 
     const teamId = finalTeamId;
