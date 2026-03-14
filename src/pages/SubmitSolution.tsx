@@ -34,11 +34,12 @@ const SubmitSolution = () => {
   const [teamIdInput, setTeamIdInput] = useState("");
   const [collegeName, setCollegeName] = useState("");
   const [instituteNumber, setInstituteNumber] = useState("");
-  const [verifiedTeam, setVerifiedTeam] = useState<{ team_name: string, problem_statement: string } | null>(null);
+  const [verifiedTeam, setVerifiedTeam] = useState<{ team_name: string, problem_statement: string, domain: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
   // Step 2: Submit solution
+  const [companyName, setCompanyName] = useState("");
   const [solutionFile, setSolutionFile] = useState<File | null>(null);
   const [youtubeLink, setYoutubeLink] = useState("");
   const [description, setDescription] = useState("");
@@ -123,6 +124,7 @@ const SubmitSolution = () => {
   const handleSubmit = async () => {
     if (isSubmitting) return; // Prevent double-click
     if (!verifiedTeam) { toast.error("Please verify your team first"); scrollToTop(); return; }
+    if (!companyName.trim()) { toast.error("Company name is required"); scrollToTop(); return; }
     if (!youtubeLink.trim()) { toast.error("YouTube video link is required"); scrollToTop(); return; }
     if (!validateYoutubeLink(youtubeLink)) { toast.error("Please enter a valid YouTube link"); scrollToTop(); return; }
     if (!solutionFile) { toast.error("Please upload your solution PDF"); scrollToTop(); return; }
@@ -133,6 +135,7 @@ const SubmitSolution = () => {
       formData.append("team_id", teamIdInput.trim());
       formData.append("college_name", collegeName.trim());
       formData.append("institute_number", instituteNumber.trim());
+      formData.append("company_name", companyName.trim());
       formData.append("youtube_link", youtubeLink.trim());
       formData.append("description", description.trim() || "");
       formData.append("solution_file", solutionFile);
@@ -300,7 +303,21 @@ const SubmitSolution = () => {
                         <div>
                           <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Allocated Problem Statement</p>
                           <p className="text-base font-bold text-foreground leading-tight mt-1">{verifiedTeam.problem_statement}</p>
+                          <p className="text-xs text-muted-foreground mt-2">Domain: {verifiedTeam.domain}</p>
                         </div>
+                      </div>
+
+                      {/* Company/Organization Name */}
+                      <div className="space-y-2">
+                        <Label className="text-base font-semibold">Company / Organization Name *</Label>
+                        <Input
+                          placeholder="Enter company or organization name"
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          The company or organization you are working with on this solution.
+                        </p>
                       </div>
 
                       {/* YouTube Link */}

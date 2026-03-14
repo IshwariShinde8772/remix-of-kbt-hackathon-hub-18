@@ -56,10 +56,10 @@ serve(async (req) => {
           );
         }
 
-        // Check in database
+        // Check in database and fetch problem statement details
         const { data: team, error: findError } = await db
           .from(regTable)
-          .select(`${teamIdCol}, team_name, leader_email`)
+          .select(`${teamIdCol}, team_name, leader_email, problem_statement_title, domain`)
           .eq(teamIdCol, team_id.trim())
           .ilike("college_name", `%${college_name?.trim() || ""}%`)
           .eq("institute_number", institute_number?.trim() || "")
@@ -73,7 +73,12 @@ serve(async (req) => {
         }
 
         return new Response(
-          JSON.stringify({ success: true, team_name: team.team_name }),
+          JSON.stringify({ 
+            success: true, 
+            team_name: team.team_name,
+            problem_statement: team.problem_statement_title || "Problem Statement",
+            domain: team.domain || "Unknown Domain"
+          }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -88,6 +93,7 @@ serve(async (req) => {
       const teamId = formData.get("team_id") as string;
       const collegeName = formData.get("college_name") as string;
       const instituteNumber = formData.get("institute_number") as string;
+      const companyName = formData.get("company_name") as string;
       const youtubeLink = formData.get("youtube_link") as string;
       const description = formData.get("description") as string;
       const pdfFile = formData.get("solution_file") as File;
@@ -95,6 +101,7 @@ serve(async (req) => {
       // Validate inputs
       const errors = [];
       if (!teamId) errors.push("Team ID");
+      if (!companyName) errors.push("Company Name");
       if (!youtubeLink) errors.push("YouTube link");
       if (!pdfFile) errors.push("Solution PDF");
 
@@ -144,6 +151,7 @@ serve(async (req) => {
       // ───────────────────────────────────────────────────────────────
       const submissionData = {
         team_id: teamId,
+        company_name: companyName,
         youtube_link: youtubeLink,
         description: description || "No description provided",
         solution_pdf_url: fileName,
@@ -217,35 +225,88 @@ serve(async (req) => {
 <html>
 <head><style>
   body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
-  .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
-  .header { background: #1e293b; padding: 25px; text-align: center; color: white; }
-  .header h1 { margin: 0; font-size: 22px; font-weight: 800; }
-  .content { padding: 30px; }
-  .success-box { background: #dcfce7; border: 1px solid #86efac; padding: 15px; border-radius: 8px; margin: 20px 0; }
-  .success-box p { margin: 5px 0; font-size: 14px; color: #166534; }
-  .footer { background: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+  .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  .header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 30px; text-align: center; color: white; }
+  .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  .header p { margin: 5px 0 0 0; font-size: 13px; opacity: 0.9; }
+  .content { padding: 35px; }
+  .greeting { font-size: 16px; font-weight: 600; color: #1e293b; margin-bottom: 15px; }
+  .message { font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 20px; }
+  .detail-box { background: #f1f5f9; border-left: 4px solid #2563eb; padding: 16px; border-radius: 6px; margin: 18px 0; }
+  .detail-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 13px; }
+  .detail-label { color: #64748b; font-weight: 600; }
+  .detail-value { color: #1e293b; font-weight: 500; }
+  .success-banner { background: #dcfce7; border: 1px solid #86efac; padding: 12px; border-radius: 6px; text-align: center; margin: 18px 0; }
+  .success-banner p { margin: 0; font-size: 14px; color: #166534; font-weight: 600; }
+  .next-steps { margin-top: 25px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+  .next-steps h3 { font-size: 14px; font-weight: 600; color: #1e293b; margin: 0 0 12px 0; }
+  .next-steps ul { margin: 0; padding-left: 20px; font-size: 13px; color: #475569; line-height: 1.8; }
+  .footer { background: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0; }
+  .footer p { margin: 5px 0; font-size: 12px; color: #64748b; }
+  .footer-link { color: #2563eb; text-decoration: none; font-weight: 500; }
 </style></head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>✅ SUBMISSION CONFIRMED</h1>
+      <h1>✅ Solution Submitted Successfully!</h1>
+      <p>KBT Avinyathon 2026 • KBTCOE Nashik</p>
     </div>
+    
     <div class="content">
-      <p style="font-size: 16px;">Congratulations <strong>${teamData.team_name}</strong>!</p>
-      <p>Your solution for <strong>KBT Avinyathon 2026</strong> has been successfully received.</p>
+      <div class="greeting">Hello ${teamData.team_name},</div>
       
-      <div class="success-box">
-        <p><strong>Team ID:</strong> ${teamId}</p>
-        <p><strong>File Name:</strong> ${fileName}</p>
-        <p><strong>YouTube Link:</strong> <a href="${youtubeLink}" style="color: #166534; text-decoration: underline;">${youtubeLink}</a></p>
-        <p><strong>Status:</strong> Under Review 📋</p>
+      <div class="message">
+        Thank you for submitting your innovative solution to KBT Avinyathon 2026! We're thrilled to receive your contribution and appreciate your hard work and dedication.
       </div>
-
-      <p>Our judges will evaluate your submission shortly. Best of luck! 🚀</p>
+      
+      <div class="success-banner">
+        <p>🎯 Your submission has been recorded and is now under evaluation</p>
+      </div>
+      
+      <div class="detail-box">
+        <div class="detail-row">
+          <span class="detail-label">Team ID:</span>
+          <span class="detail-value">${teamId}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Team Name:</span>
+          <span class="detail-value">${teamData.team_name}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Submission Status:</span>
+          <span class="detail-value" style="color: #16a34a; font-weight: 700;">✓ Confirmed</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">PDF Submission:</span>
+          <span class="detail-value">${fileName}</span>
+        </div>
+      </div>
+      
+      <div class="next-steps">
+        <h3>📋 What Happens Next?</h3>
+        <ul>
+          <li><strong>Evaluation:</strong> Our expert judges will review your solution during the next 5-7 days</li>
+          <li><strong>Feedback:</strong> You'll receive detailed feedback on your submission via email</li>
+          <li><strong>Shortlisting:</strong> Selected teams will be invited to the final presentation round</li>
+          <li><strong>Next Steps:</strong> Final round details will be shared with shortlisted teams</li>
+        </ul>
+      </div>
+      
+      <div class="message" style="margin-top: 20px; font-size: 13px;">
+        If you have any questions or need to update your submission, please reach out to our support team. We're here to help!
+      </div>
     </div>
+    
     <div class="footer">
-      <p>© 2026 KBT Avinyathon • KBTCOE Nashik<br>
-      <a href="mailto:kbtavinyathon@gmail.com" style="color: #2563eb; text-decoration: none;">kbtavinyathon@gmail.com</a></p>
+      <p><strong>KBT Avinyathon 2026</strong></p>
+      <p>KBTCOE Engineering College, Nashik</p>
+      <p>
+        <a href="mailto:kbtavinyathon@gmail.com" class="footer-link">kbtavinyathon@gmail.com</a> 
+        | 📱 Contact: +91-XXXXXXXXXX
+      </p>
+      <p style="margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; color: #94a3b8; font-size: 11px;">
+        © 2026 KBT Avinyathon. All rights reserved. | <a href="#" class="footer-link">Privacy Policy</a>
+      </p>
     </div>
   </div>
 </body>
