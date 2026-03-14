@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, edgeFunctionsClient } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -227,7 +227,7 @@ const RegisterTeam = () => {
       let result = null;
       let lastError = null;
       for (let attempt = 1; attempt <= 2; attempt++) {
-        const { data, error } = await supabase.functions.invoke("register-team", {
+        const { data, error } = await edgeFunctionsClient.functions.invoke("register-team", {
           body: {
             team_name: teamName,
             college_name: collegeName,

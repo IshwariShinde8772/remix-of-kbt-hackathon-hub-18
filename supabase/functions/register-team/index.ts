@@ -1,74 +1,80 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import nodemailer from "npm:nodemailer";
 import { decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import nodemailer from "npm:nodemailer";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
     const data = await req.json();
     const { reg_file_data, reg_file_name, reg_file_type } = data;
 
-    const primaryUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const primaryKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-
-    if (!primaryUrl || !primaryKey) {
-      return new Response(
-        JSON.stringify({ error: "Server configuration error: missing credentials" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const LovableUrl = "https://wunqjksrgdppzcucwcyd.supabase.co";
+    // Using the EXTERNAL key which in this context corresponds to the Lovable key
+    let LovableKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") || "";
+    
+    // Fallback if someone didn't set EXTERNAL keys, but they set SUPABASE_URL to lovable
+    if (Deno.env.get("SUPABASE_URL")?.includes("wunqjksrgdppzcucwcyd")) {
+        LovableKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || LovableKey;
     }
 
-    const LovableUrl = "https://wunqjksrgdppzcucwcyd.supabase.co";
-    const ExternalUrl = "https://lxawemydhhmqjahttrlb.supabase.co";
+    if (!LovableKey) {
+      console.error("❌ Missing Lovable Supabase key in environment variables");
+      throw new Error("Server configuration error");
+    }
 
-    // wunqjksrgdppzcucwcyd is Lovable (uses registered_teams)
-    // lxawemydhhmqjahttrlb is External (uses team_registrations)
-    const isExternal = primaryUrl.includes("lxawemydhhmqjahttrlb");
-    const primaryTable = isExternal ? "team_registrations" : "registered_teams";
-    const idColumn = isExternal ? "registration_id" : "team_id";
+    const supabase = createClient(LovableUrl, LovableKey);
 
-    const supabase = createClient(primaryUrl, primaryKey);
+    const primaryTable = "registered_teams";
+    const idColumn = "team_id";
 
     // Handle file upload if provided
     let finalRegFormUrl = data.registration_form_url || null;
     let decodedFileData: Uint8Array | null = null;
 
     if (reg_file_data && reg_file_name) {
-      decodedFileData = decode(reg_file_data);
-      const { error: uploadError } = await supabase.storage
-        .from('registration-forms')
-        .upload(reg_file_name, decodedFileData, {
-          contentType: reg_file_type || 'application/pdf',
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error("Primary storage upload error:", uploadError);
-      } else {
-        finalRegFormUrl = reg_file_name; // Store just the filename/path
+      try {
+        decodedFileData = decode(reg_file_data);
+      } catch (err) {
+        throw new Error("Invalid file data encoding");
       }
     }
 
-    const members = data.members || [];
-    const membersArray = members.map((m: any) => ({
-      name: m.name,
-      email: m.email,
-      contact: m.contact || null,
-    }));
+    if (decodedFileData && reg_file_name) {
+      const fileName = `${data.college_name?.replace(/[^a-zA-Z0-9]/g, "_") || "college"}_${Date.now()}_${reg_file_name}`;
+      const contentType = reg_file_type || "application/pdf";
 
-    // Duplicate check
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("solutions")
+        .upload(`registrations/${fileName}`, decodedFileData, {
+          contentType,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Failed to upload registration form: ${uploadError.message}`);
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from("solutions")
+        .getPublicUrl(`registrations/${fileName}`);
+
+      finalRegFormUrl = publicUrl;
+    }
+
     const { data: existing } = await supabase
       .from(primaryTable)
       .select(idColumn)
-      .ilike("leader_email", data.leader_email?.trim() || "")
+      .eq("institute_number", data.institute_number?.trim() || "")
       .ilike("college_name", data.college_name?.trim() || "")
       .limit(1);
 
@@ -87,61 +93,37 @@ Deno.serve(async (req) => {
     const nextNum = (count || 0) + 1;
     const generatedId = `KBT-${nextNum.toString().padStart(4, "0")}`;
 
-    // Build the correct insert payload per-schema
-    let insertPayload: Record<string, any>;
-
-    if (isExternal) {
-      insertPayload = {
-        team_name: data.team_name || "Unknown Team",
-        college_name: data.college_name || "Unknown College",
-        institute_number: data.institute_number || "000000",
-        leader_name: data.leader_name || "Unknown",
-        leader_email: data.leader_email || "unknown@email.com",
-        leader_contact: data.leader_phone || "0000000000",
-        members: membersArray,
-        domain: data.selected_domain || "Software",
-        problem_statement_id: data.selected_problem_id || null,
-        problem_statement_uuid: data.selected_problem_id || null,
-        problem_statement_title: data.problem_title || "General Participation",
-        problem_description: data.approach_description || data.problem_description || "No description provided",
-        mentor_name: data.mentor_name || "N/A",
-        mentor_email: data.mentor_email || "N/A",
-        mentor_contact: data.mentor_contact || "N/A",
-        registration_form_url: finalRegFormUrl,
-        registration_id: generatedId,
-        status: "registered",
-      };
-    } else {
-      insertPayload = {
-        team_name: data.team_name || "Unknown Team",
-        college_name: data.college_name || "Unknown College",
-        institute_number: data.institute_number || "000000",
-        leader_name: data.leader_name || "Unknown",
-        leader_email: data.leader_email || "unknown@email.com",
-        leader_phone: data.leader_phone || "0000000000",
-        approach_description: data.approach_description || data.problem_description || "No description provided",
-        selected_domain: data.selected_domain || "Software",
-        selected_problem_id: data.selected_problem_id || null,
-        mentor_name: data.mentor_name || "N/A",
-        mentor_email: data.mentor_email || "N/A",
-        mentor_contact: data.mentor_contact || "N/A",
-        registration_form_url: finalRegFormUrl,
-        team_id: generatedId,
-        // Map members to flat columns for Lovable
-        member2_name: membersArray[0]?.name || null,
-        member2_email: membersArray[0]?.email || null,
-        member2_role: "Member",
-        member3_name: membersArray[1]?.name || null,
-        member3_email: membersArray[1]?.email || null,
-        member3_role: "Member",
-        member4_name: membersArray[2]?.name || null,
-        member4_email: membersArray[2]?.email || null,
-        member4_role: "Member",
-        member5_name: membersArray[3]?.name || null,
-        member5_email: membersArray[3]?.email || null,
-        member5_role: "Member",
-      };
-    }
+    const membersArray = data.members || [];
+    
+    // Always build the Lovable insert payload format
+    const insertPayload = {
+      team_name: data.team_name || "Unknown Team",
+      college_name: data.college_name || "Unknown College",
+      institute_number: data.institute_number || "000000",
+      leader_name: data.leader_name || "Unknown",
+      leader_email: data.leader_email || "unknown@email.com",
+      leader_phone: data.leader_phone || "0000000000",
+      approach_description: data.approach_description || data.problem_description || "No description provided",
+      selected_domain: data.selected_domain || "Software",
+      selected_problem_id: data.selected_problem_id || null,
+      mentor_name: data.mentor_name || "N/A",
+      mentor_email: data.mentor_email || "N/A",
+      mentor_contact: data.mentor_contact || "N/A",
+      registration_form_url: finalRegFormUrl,
+      team_id: generatedId,
+      member2_name: membersArray[0]?.name || null,
+      member2_email: membersArray[0]?.email || null,
+      member2_role: "Member",
+      member3_name: membersArray[1]?.name || null,
+      member3_email: membersArray[1]?.email || null,
+      member3_role: "Member",
+      member4_name: membersArray[2]?.name || null,
+      member4_email: membersArray[2]?.email || null,
+      member4_role: "Member",
+      member5_name: membersArray[3]?.name || null,
+      member5_email: membersArray[3]?.email || null,
+      member5_role: "Member",
+    };
 
     const { data: result, error: insertError } = await supabase
       .from(primaryTable)
@@ -150,7 +132,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (insertError) {
-      console.error("Insert error details:", insertError); // Log details to server for admin
+      console.error("Insert error details:", insertError);
       return new Response(JSON.stringify({ error: "Registration failed. Please try again later." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -158,7 +140,6 @@ Deno.serve(async (req) => {
     }
 
     if (!result) {
-      console.error("Registration failed: no record returned.");
       return new Response(JSON.stringify({ error: "Registration failed. Please try again later." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -166,10 +147,8 @@ Deno.serve(async (req) => {
     }
 
     const teamId = (result as any)[idColumn] || generatedId;
-    const teamResName = result.team_name;
-    console.log(`✅ Registered: ${teamId} — ${teamResName} (table: ${primaryTable})`);
 
-    // Start background processes
+    // Start background processes (Email ONLY)
     const backgroundWork = async () => {
       const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
       const gmailUser = "kbtavinyathon@gmail.com";
@@ -179,24 +158,21 @@ Deno.serve(async (req) => {
         return;
       }
 
-      console.log(`📧 Attempting to send email to leader: ${data.leader_email}`);
-
       try {
-        const emailHtml = `
-<!DOCTYPE html>
+        const emailHtml = `<!DOCTYPE html>
 <html>
 <head>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f7f9; }
-    .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .header { background-color: #1e293b; color: #ffffff; padding: 30px; text-align: center; }
-    .header h1 { margin: 0; font-size: 20px; letter-spacing: 1px; text-transform: uppercase; }
-    .header p { margin: 5px 0 0; font-size: 10px; opacity: 0.8; letter-spacing: 1px; }
-    .content { padding: 25px; }
-    .welcome { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 15px; }
-    .team-id-box { background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center; }
-    .team-id-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-    .team-id-value { font-size: 24px; font-weight: 800; color: #2563eb; margin: 8px 0; letter-spacing: 1px; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #334155; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
+    .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 25px; text-align: center; color: white; border-bottom: 4px solid #f59e0b; }
+    .header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+    .header p { margin: 5px 0 0; font-size: 13px; opacity: 0.9; }
+    .content { padding: 30px; }
+    .welcome { font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 10px; }
+    .team-id-box { background: linear-gradient(to right, #eff6ff, #dbeafe); border: 1px solid #bfdbfe; border-radius: 12px; padding: 15px; text-align: center; margin: 25px 0; }
+    .team-id-label { font-size: 12px; font-weight: bold; color: #2563eb; text-transform: uppercase; letter-spacing: 1px; }
+    .team-id-value { font-size: 28px; font-weight: 900; color: #1e3a8a; margin: 5px 0; font-family: monospace; letter-spacing: 2px; }
     .team-id-warning { font-size: 10px; color: #f59e0b; font-weight: 600; margin-top: 5px; }
     .details-section { margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
     .details-title { font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #1e293b; }
@@ -297,105 +273,30 @@ Deno.serve(async (req) => {
           html: emailHtml,
         });
 
-        console.log(`✅ Email successfully sent to ${data.leader_email} and CC list`);
-      } catch (e) {
-        console.error("❌ Email sending failed:", e);
-      }
-
-      const externalKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
-      if (externalKey) {
-        try {
-          const otherUrl = isExternal ? LovableUrl : ExternalUrl;
-          const otherTable = isExternal ? "registered_teams" : "team_registrations";
-          const otherClient = createClient(otherUrl, externalKey);
-
-          // ── 1. Upload file to other storage ──
-          if (decodedFileData && reg_file_name) {
-            await otherClient.storage
-              .from('registration-forms')
-              .upload(reg_file_name, decodedFileData, {
-                contentType: reg_file_type || 'application/pdf',
-                upsert: true,
-              });
-          }
-
-          // ── 2. Sync DB record ──
-          const syncPayload = isExternal
-            ? {
-              team_name: data.team_name,
-              college_name: data.college_name,
-              leader_name: data.leader_name,
-              leader_email: data.leader_email,
-              leader_phone: data.leader_phone || "0000000000",
-              institute_number: data.institute_number || "000000",
-              mentor_name: data.mentor_name || "N/A",
-              mentor_email: data.mentor_email || "N/A",
-              mentor_contact: data.mentor_contact || "N/A",
-              team_id: teamId,
-              approach_description: data.approach_description || "No description provided",
-              selected_domain: data.selected_domain || "Software",
-              selected_problem_id: data.selected_problem_id || null,
-              registration_form_url: finalRegFormUrl,
-              // Sync flat members to Lovable
-              member2_name: membersArray[0]?.name || null,
-              member2_email: membersArray[0]?.email || null,
-              member2_role: "Member",
-              member3_name: membersArray[1]?.name || null,
-              member3_email: membersArray[1]?.email || null,
-              member3_role: "Member",
-              member4_name: membersArray[2]?.name || null,
-              member4_email: membersArray[2]?.email || null,
-              member4_role: "Member",
-              member5_name: membersArray[3]?.name || null,
-              member5_email: membersArray[3]?.email || null,
-              member5_role: "Member",
-            }
-            : {
-              team_name: data.team_name,
-              college_name: data.college_name,
-              leader_name: data.leader_name,
-              leader_email: data.leader_email,
-              leader_contact: data.leader_phone || "0000000000",
-              institute_number: data.institute_number || "000000",
-              mentor_name: data.mentor_name || "N/A",
-              mentor_email: data.mentor_email || "N/A",
-              mentor_contact: data.mentor_contact || "N/A",
-              registration_id: teamId,
-              problem_description: data.approach_description || "No description provided",
-              domain: data.selected_domain || "Software",
-              status: "registered",
-              registration_form_url: finalRegFormUrl,
-              members: membersArray,
-              problem_statement_id: data.selected_problem_id || null,
-              problem_statement_uuid: data.selected_problem_id || null,
-              problem_statement_title: data.problem_title || "General Participation"
-            };
-
-          const { error: syncError } = await otherClient.from(otherTable).insert(syncPayload);
-          if (syncError) console.error(`❌ Dual sync error (${otherTable}):`, syncError.message);
-          else console.log(`✅ Dual sync saved to ${otherTable}`);
-        } catch (e) {
-          console.error("❌ Dual sync exception:", e);
-        }
+      } catch (emailError) {
+        console.error("❌ Email sending failed:", emailError);
       }
     };
 
-    // Use EdgeRuntime.waitUntil to ensure background tasks complete after returning response
     if ((globalThis as any).EdgeRuntime) {
       (globalThis as any).EdgeRuntime.waitUntil(backgroundWork());
     } else {
-      await backgroundWork();
+      backgroundWork();
     }
 
     return new Response(
-      JSON.stringify({ success: true, team_id: teamId, team_name: teamResName }),
+      JSON.stringify({
+        success: true,
+        message: "Registration successful!",
+        team_id: teamId,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
-    console.error("❌ Edge function error:", error);
+  } catch (error: any) {
+    console.error("❌ Registration error:", error);
     return new Response(
-      JSON.stringify({ error: "Registration failed. Please try again later." }),
+      JSON.stringify({ error: "An unexpected error occurred. Please try again later." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

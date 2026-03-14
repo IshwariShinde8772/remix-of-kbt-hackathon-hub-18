@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, edgeFunctionsClient } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -71,7 +71,7 @@ const SubmitSolution = () => {
     try {
       console.log("🔍 Verifying team with ID:", teamIdInput.trim());
       
-      const { data: result, error: invokeError } = await supabase.functions.invoke("submit-solution", {
+      const { data: result, error: invokeError } = await edgeFunctionsClient.functions.invoke("submit-solution", {
         body: {
           action: "validate",
           team_id: teamIdInput.trim(),
@@ -137,7 +137,7 @@ const SubmitSolution = () => {
       formData.append("description", description.trim() || "");
       formData.append("solution_file", solutionFile);
 
-      const { data: result, error: invokeError } = await supabase.functions.invoke("submit-solution", {
+      const { data: result, error: invokeError } = await edgeFunctionsClient.functions.invoke("submit-solution", {
         body: formData,
       });
 

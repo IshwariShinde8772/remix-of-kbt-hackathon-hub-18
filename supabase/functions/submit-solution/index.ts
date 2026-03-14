@@ -9,111 +9,81 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // 1. Handle CORS Preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  console.log(`🚀 Request: ${req.method} ${req.url}`);
   const contentType = req.headers.get("content-type") || "";
-  console.log(`📝 Content-Type: ${contentType}`);
 
   try {
-    const primaryUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const primaryKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-
-    if (!primaryUrl || !primaryKey) {
-      console.error("❌ Missing Supabase environment variables");
-      throw new Error("Server configuration error: missing credentials");
+    const LovableUrl = "https://wunqjksrgdppzcucwcyd.supabase.co";
+    // Using the EXTERNAL key which in this context corresponds to the Lovable key
+    let LovableKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") || "";
+    
+    // Fallback if someone didn't set EXTERNAL keys, but they set SUPABASE_URL to lovable
+    if (Deno.env.get("SUPABASE_URL")?.includes("wunqjksrgdppzcucwcyd")) {
+        LovableKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || LovableKey;
     }
 
-    // Correctly identify which database this function is deployed to.
-    // wunqjksrgdppzcucwcyd is Lovable (uses registered_teams, submissions)
-    // lxawemydhhmqjahttrlb is External (uses team_registrations, team_solutions)
-    const supabase = createClient(primaryUrl, primaryKey);
-    const isExternal = primaryUrl.includes("lxawemydhhmqjahttrlb");
-    const primaryRegTable = isExternal ? "team_registrations" : "registered_teams";
-    const primarySolTable = isExternal ? "team_solutions" : "submissions";
-    const regIdCol = isExternal ? "registration_id" : "team_id";
-    const probTitleCol = isExternal ? "problem_statement_title" : "selected_problem_id";
+    if (!LovableKey) {
+      console.error("❌ Missing Lovable Supabase key in environment variables");
+      throw new Error("Server configuration error");
+    }
 
-    // ── 2. Handle JSON Requests (Validation) ──
+    const supabase = createClient(LovableUrl, LovableKey);
+
+    const RegTable = "registered_teams";
+    const SolTable = "submissions";
+    const IdCol = "team_id";
+    const ProbTitleCol = "selected_problem_id";
+
+    // ── 1. Handle JSON Requests (Validation) ──
     if (contentType.includes("application/json")) {
       let body;
       const rawBody = await req.text();
-      console.log(`📥 Received JSON body (len: ${rawBody.length}): "${rawBody.substring(0, 100)}..."`);
-
       try {
         body = JSON.parse(rawBody);
       } catch (e: any) {
-        console.error("❌ Malformed JSON received. Error:", e.message);
-        console.error("❌ Full raw body for debugging:", rawBody);
-        return new Response(JSON.stringify({
-          error: "Invalid request data format.",
-          details: e.message
-        }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+        return new Response(JSON.stringify({ error: "Invalid request data format." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-
+      
       const { team_id, college_name, institute_number, action } = body;
 
       if (action === "validate") {
         if (!team_id) throw new Error("Team ID is required for validation");
 
-        console.log("🔍 Searching for team with:", {
-          table: primaryRegTable,
-          idCol: regIdCol,
-          idVal: team_id.trim(),
-          collegeVal: college_name?.trim(),
-          instVal: institute_number?.trim()
-        });
-
         const { data: team, error: findError } = await supabase
-          .from(primaryRegTable)
-          .select(`${regIdCol}, team_name, college_name, institute_number, leader_email, ${probTitleCol}`)
-          .eq(regIdCol, team_id.trim())
+          .from(RegTable)
+          .select(`${IdCol}, team_name, college_name, institute_number, leader_email, ${ProbTitleCol}`)
+          .eq(IdCol, team_id.trim())
           .ilike("college_name", `%${college_name?.trim() || ""}%`)
           .eq("institute_number", institute_number?.trim() || "")
           .maybeSingle();
 
-        if (findError) {
-          console.error("❌ Database query error:", findError);
-          return new Response(JSON.stringify({ error: "Database error during verification." }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
-        }
-
-        if (!team) {
-          console.log("❌ Team verification failed. No match found for:", team_id);
+        if (findError || !team) {
           return new Response(JSON.stringify({ error: "Invalid Team ID, College Name, or Institute Number." }), {
             status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
           });
         }
 
-        console.log("✅ Team found:", team);
-
-        let problemStatement = (team as any)[probTitleCol] || "General Problem";
-        // If it's the internal project and we have an ID, fetch the title
-        if (!isExternal && team.selected_problem_id) {
+        let problemStatement = "General Problem";
+        if (team.selected_problem_id) {
           const { data: prob } = await supabase.from("problem_statements").select("problem_title").eq("id", team.selected_problem_id).maybeSingle();
           if (prob) problemStatement = prob.problem_title;
         }
 
-        console.log("✅ Team verified successfully");
-        return new Response(JSON.stringify({
-          success: true,
+        return new Response(JSON.stringify({ 
+          success: true, 
           team_name: team.team_name,
           problem_statement: problemStatement
         }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
 
-    // ── 3. Handle Multipart Requests (Submission) ──
+    // ── 2. Handle Multipart Requests (Submission) ──
     if (contentType.includes("multipart/form-data")) {
-      console.log("📤 Parsing multipart form data...");
       const formData = await req.formData();
-
+      
       const teamId = formData.get("team_id") as string;
       const college = formData.get("college_name") as string;
       const instId = formData.get("institute_number") as string;
@@ -121,22 +91,17 @@ serve(async (req) => {
       const description = formData.get("description") as string;
       const pdfFile = formData.get("solution_file") as File;
 
-      console.log("📦 Received fields:", { teamId, youtubeLink, hasFile: !!pdfFile });
-
       if (!teamId || !youtubeLink || !pdfFile) {
-        console.error("❌ Rejected: Missing fields", { teamId, youtubeLink, hasFile: !!pdfFile });
-        return new Response(JSON.stringify({
-          error: "Team ID, YouTube video link, and solution PDF are all required for submission."
-        }), {
+        return new Response(JSON.stringify({ error: "Team ID, YouTube video link, and solution PDF are required." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
       // ── Step A: Secondary Verification ──
       const { data: teamCheck } = await supabase
-        .from(primaryRegTable)
-        .select(`${regIdCol}, team_name, leader_email`)
-        .eq(regIdCol, teamId)
+        .from(RegTable)
+        .select(`${IdCol}, team_name, leader_email`)
+        .eq(IdCol, teamId)
         .ilike("college_name", `%${college || ""}%`)
         .eq("institute_number", instId || "")
         .maybeSingle();
@@ -151,58 +116,26 @@ serve(async (req) => {
       const fileName = `${teamId}-${Date.now()}.pdf`;
       const fileBuffer = await pdfFile.arrayBuffer();
 
-      console.log(`📤 Uploading file: ${fileName}`);
       const { error: uploadError } = await supabase.storage.from("solutions").upload(fileName, fileBuffer, { contentType: "application/pdf" });
-      if (uploadError) {
-        console.error("❌ Storage error:", uploadError);
-        throw new Error(`Storage upload failed: ${uploadError.message}`);
-      }
+      if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
 
       // ── Step C: Database Insert ──
-      const insertData = isExternal ? {
-        registration_id: teamId,
-        solution_title: `Solution by ${teamId}`,
-        solution_description: description || "N/A",
-        github_link: "N/A",
-        video_link: youtubeLink,
-        solution_pdf_url: fileName,
-        status: "submitted"
-      } : {
-        team_id: teamId,
-        description: description || "N/A",
-        youtube_link: youtubeLink,
-        solution_pdf_url: fileName,
+      const insertData = {
+        team_id: teamId, 
+        description: description || "N/A", 
+        youtube_link: youtubeLink, 
+        solution_pdf_url: fileName, 
         status: "pending"
       };
 
-      console.log(`📝 Inserting into ${primarySolTable}`);
-      const { data: result, error: insertError } = await supabase.from(primarySolTable).insert(insertData).select("id").single();
-      if (insertError) {
-        console.error("❌ Insert error:", insertError);
-        throw insertError;
-      }
+      const { data: result, error: insertError } = await supabase.from(SolTable).insert(insertData).select("id").single();
+      if (insertError) throw insertError;
 
-      // ── Step D: Background Work (Dual Sync & Email) ──
-      const dualSyncAndEmail = async () => {
+      // ── Step D: Background Email ──
+      const sendEmail = async () => {
         try {
-          const extKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
           const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
           const gmailUser = "kbtavinyathon@gmail.com";
-
-          if (extKey) {
-            const otherUrl = isExternal ? "https://wunqjksrgdppzcucwcyd.supabase.co" : "https://lxawemydhhmqjahttrlb.supabase.co";
-            const otherClient = createClient(otherUrl, extKey);
-
-            await otherClient.storage.from("solutions").upload(fileName, fileBuffer, { contentType: "application/pdf" });
-
-            const otherTable = isExternal ? "submissions" : "team_solutions";
-            const syncData = isExternal ? {
-              team_id: teamId, description: description || "N/A", youtube_link: youtubeLink, solution_pdf_url: fileName, status: "pending"
-            } : {
-              registration_id: teamId, solution_title: `Solution by ${teamId}`, solution_description: description || "N/A", github_link: "N/A", video_link: youtubeLink, solution_pdf_url: fileName, status: "submitted"
-            };
-            await otherClient.from(otherTable).insert(syncData);
-          }
 
           if (gmailPass && teamCheck.leader_email) {
             const transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: gmailUser, pass: gmailPass } });
@@ -230,21 +163,18 @@ serve(async (req) => {
         }
       };
 
-      if ((globalThis as any).EdgeRuntime) { (globalThis as any).EdgeRuntime.waitUntil(dualSyncAndEmail()); }
-      else { dualSyncAndEmail(); }
+      if ((globalThis as any).EdgeRuntime) { (globalThis as any).EdgeRuntime.waitUntil(sendEmail()); }
+      else { sendEmail(); }
 
-      console.log("✅ Final success response sent");
       return new Response(JSON.stringify({ success: true, submission_id: result.id }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ error: "Unsupported request format." }), { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error: any) {
-    console.error("❌ Submission error detail:", error);
-    // Sanitize user message for security
-    return new Response(JSON.stringify({ error: "Submission failed. Please try again later." }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    console.error("❌ Submission error:", error);
+    return new Response(JSON.stringify({ error: "Submission failed. Please try again later." }), { 
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } 
     });
   }
 });
