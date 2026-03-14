@@ -29,6 +29,8 @@ Deno.serve(async (req) => {
     const LovableUrl = "https://wunqjksrgdppzcucwcyd.supabase.co";
     const ExternalUrl = "https://lxawemydhhmqjahttrlb.supabase.co";
 
+    // wunqjksrgdppzcucwcyd is Lovable (uses registered_teams)
+    // lxawemydhhmqjahttrlb is External (uses team_registrations)
     const isExternal = primaryUrl.includes("lxawemydhhmqjahttrlb");
     const primaryTable = isExternal ? "team_registrations" : "registered_teams";
     const idColumn = isExternal ? "registration_id" : "team_id";
@@ -319,55 +321,55 @@ Deno.serve(async (req) => {
 
           // ── 2. Sync DB record ──
           const syncPayload = isExternal
-            ? { 
-                team_name: data.team_name, 
-                college_name: data.college_name, 
-                leader_name: data.leader_name, 
-                leader_email: data.leader_email, 
-                leader_phone: data.leader_phone || "0000000000", 
-                institute_number: data.institute_number || "000000", 
-                mentor_name: data.mentor_name || "N/A", 
-                mentor_email: data.mentor_email || "N/A", 
-                mentor_contact: data.mentor_contact || "N/A", 
-                team_id: teamId, 
-                approach_description: data.approach_description || "No description provided", 
-                selected_domain: data.selected_domain || "Software",
-                selected_problem_id: data.selected_problem_id || null,
-                registration_form_url: finalRegFormUrl,
-                // Sync flat members to Lovable
-                member2_name: membersArray[0]?.name || null,
-                member2_email: membersArray[0]?.email || null,
-                member2_role: "Member",
-                member3_name: membersArray[1]?.name || null,
-                member3_email: membersArray[1]?.email || null,
-                member3_role: "Member",
-                member4_name: membersArray[2]?.name || null,
-                member4_email: membersArray[2]?.email || null,
-                member4_role: "Member",
-                member5_name: membersArray[3]?.name || null,
-                member5_email: membersArray[3]?.email || null,
-                member5_role: "Member",
-              }
-            : { 
-                team_name: data.team_name, 
-                college_name: data.college_name, 
-                leader_name: data.leader_name, 
-                leader_email: data.leader_email, 
-                leader_contact: data.leader_phone || "0000000000", 
-                institute_number: data.institute_number || "000000", 
-                mentor_name: data.mentor_name || "N/A", 
-                mentor_email: data.mentor_email || "N/A", 
-                mentor_contact: data.mentor_contact || "N/A", 
-                registration_id: teamId, 
-                problem_description: data.approach_description || "No description provided", 
-                domain: data.selected_domain || "Software", 
-                status: "registered", 
-                registration_form_url: finalRegFormUrl,
-                members: membersArray,
-                problem_statement_id: data.selected_problem_id || null,
-                problem_statement_uuid: data.selected_problem_id || null,
-                problem_statement_title: data.problem_title || "General Participation"
-              };
+            ? {
+              team_name: data.team_name,
+              college_name: data.college_name,
+              leader_name: data.leader_name,
+              leader_email: data.leader_email,
+              leader_phone: data.leader_phone || "0000000000",
+              institute_number: data.institute_number || "000000",
+              mentor_name: data.mentor_name || "N/A",
+              mentor_email: data.mentor_email || "N/A",
+              mentor_contact: data.mentor_contact || "N/A",
+              team_id: teamId,
+              approach_description: data.approach_description || "No description provided",
+              selected_domain: data.selected_domain || "Software",
+              selected_problem_id: data.selected_problem_id || null,
+              registration_form_url: finalRegFormUrl,
+              // Sync flat members to Lovable
+              member2_name: membersArray[0]?.name || null,
+              member2_email: membersArray[0]?.email || null,
+              member2_role: "Member",
+              member3_name: membersArray[1]?.name || null,
+              member3_email: membersArray[1]?.email || null,
+              member3_role: "Member",
+              member4_name: membersArray[2]?.name || null,
+              member4_email: membersArray[2]?.email || null,
+              member4_role: "Member",
+              member5_name: membersArray[3]?.name || null,
+              member5_email: membersArray[3]?.email || null,
+              member5_role: "Member",
+            }
+            : {
+              team_name: data.team_name,
+              college_name: data.college_name,
+              leader_name: data.leader_name,
+              leader_email: data.leader_email,
+              leader_contact: data.leader_phone || "0000000000",
+              institute_number: data.institute_number || "000000",
+              mentor_name: data.mentor_name || "N/A",
+              mentor_email: data.mentor_email || "N/A",
+              mentor_contact: data.mentor_contact || "N/A",
+              registration_id: teamId,
+              problem_description: data.approach_description || "No description provided",
+              domain: data.selected_domain || "Software",
+              status: "registered",
+              registration_form_url: finalRegFormUrl,
+              members: membersArray,
+              problem_statement_id: data.selected_problem_id || null,
+              problem_statement_uuid: data.selected_problem_id || null,
+              problem_statement_title: data.problem_title || "General Participation"
+            };
 
           const { error: syncError } = await otherClient.from(otherTable).insert(syncPayload);
           if (syncError) console.error(`❌ Dual sync error (${otherTable}):`, syncError.message);
