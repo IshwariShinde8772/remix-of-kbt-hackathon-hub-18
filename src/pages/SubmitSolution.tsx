@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Search, Upload, Send, FileText, Youtube, CheckCircle2, AlertCircle, ArrowRight, X, Layout, BookOpen, Building2, Shield } from "lucide-react";
+import { Search, Upload, Send, FileText, Youtube, CheckCircle2, AlertCircle, ArrowRight, X, Layout, GraduationCap, Building2, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const SubmitSolution = () => {
@@ -18,11 +18,11 @@ const SubmitSolution = () => {
   const [teamIdInput, setTeamIdInput] = useState("");
   const [collegeName, setCollegeName] = useState("");
   const [instituteNumber, setInstituteNumber] = useState("");
-  const [verifiedTeam, setVerifiedTeam] = useState<{ 
+  const [verifiedTeam, setVerifiedTeam] = useState<{
     team_name: string,
     leader_name: string,
     college_name: string,
-    problem_statement: string, 
+    problem_statement: string,
     problem_description: string,
     domain: string,
     company_name: string,
@@ -63,7 +63,7 @@ const SubmitSolution = () => {
 
     try {
       console.log("🔍 Verifying team with ID:", teamIdInput.trim());
-      
+
       const { data: result, error: invokeError } = await edgeFunctionsClient.functions.invoke("submit-solution", {
         body: {
           action: "validate",
@@ -115,25 +115,25 @@ const SubmitSolution = () => {
 
   const handleSubmit = async () => {
     if (isSubmitting) return; // Prevent double-click
-    if (!verifiedTeam) { 
-      toast.error("Please verify your team first"); 
-      scrollToTop(); 
-      return; 
+    if (!verifiedTeam) {
+      toast.error("Please verify your team first");
+      scrollToTop();
+      return;
     }
-    if (!youtubeLink.trim()) { 
-      toast.error("YouTube video link is required"); 
-      scrollToTop(); 
-      return; 
+    if (!youtubeLink.trim()) {
+      toast.error("YouTube video link is required");
+      scrollToTop();
+      return;
     }
-    if (!validateYoutubeLink(youtubeLink)) { 
-      toast.error("Please enter a valid YouTube link"); 
-      scrollToTop(); 
-      return; 
+    if (!validateYoutubeLink(youtubeLink)) {
+      toast.error("Please enter a valid YouTube link");
+      scrollToTop();
+      return;
     }
-    if (!solutionFile) { 
-      toast.error("Please upload your solution PDF"); 
-      scrollToTop(); 
-      return; 
+    if (!solutionFile) {
+      toast.error("Please upload your solution PDF");
+      scrollToTop();
+      return;
     }
     if (!description.trim()) {
       toast.error("Brief solution description is required");
@@ -186,7 +186,7 @@ const SubmitSolution = () => {
       <main className="py-8">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-            
+
             {submitted ? (
               /* Success Card - Styled like RegisterTeam success dialog / card */
               <div className="bg-background rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-500">
@@ -203,26 +203,26 @@ const SubmitSolution = () => {
                       Submission Successful
                     </h2>
                     <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
-                      Your solution for <span className="text-primary font-bold">"{verifiedTeam?.problem_statement}"</span> has been successfully logged. 
+                      Your solution for <span className="text-primary font-bold">"{verifiedTeam?.problem_statement}"</span> has been successfully logged.
                       A confirmation email has been sent to your team leader.
                     </p>
                   </div>
-                  
+
                   <div className="inline-block px-6 md:px-10 py-4 md:py-5 bg-muted rounded-xl border border-border">
                     <p className="text-[10px] md:text-xs uppercase tracking-widest font-bold text-muted-foreground mb-1">TEAM ID</p>
                     <p className="text-2xl md:text-3xl font-mono font-bold text-primary">{submittedTeamId}</p>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center pt-2 md:pt-4">
-                    <Button 
+                    <Button
                       className="gradient-primary text-white h-12 px-8 rounded-xl font-bold uppercase w-full sm:w-auto"
                       onClick={() => navigate("/")}
                     >
                       Return Home
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="h-12 px-8 rounded-xl font-bold uppercase border-2 w-full sm:w-auto" 
+                    <Button
+                      variant="outline"
+                      className="h-12 px-8 rounded-xl font-bold uppercase border-2 w-full sm:w-auto"
                       onClick={() => navigate("/problems")}
                     >
                       Explore Problems
@@ -283,9 +283,9 @@ const SubmitSolution = () => {
                       <div className="space-y-2">
                         <Label>Institute ID *</Label>
                         <div className="relative">
-                          <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
-                            placeholder="Number Only"
+                            placeholder="12345"
                             className="pl-10 h-11"
                             value={instituteNumber}
                             onChange={(e) => setInstituteNumber(e.target.value)}
@@ -296,9 +296,9 @@ const SubmitSolution = () => {
                     </div>
 
                     {!verifiedTeam ? (
-                      <Button 
-                        onClick={verifyTeam} 
-                        disabled={isSearching} 
+                      <Button
+                        onClick={verifyTeam}
+                        disabled={isSearching}
                         className="gradient-primary text-white h-12 px-10 rounded-xl font-bold uppercase tracking-wider"
                       >
                         {isSearching ? (
@@ -320,10 +320,10 @@ const SubmitSolution = () => {
                             </p>
                           </div>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => { setVerifiedTeam(null); setHasSearched(false); }} 
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setVerifiedTeam(null); setHasSearched(false); }}
                           className="text-muted-foreground hover:text-red-500 hover:bg-red-50 font-bold uppercase text-[10px] h-8 px-3 ml-auto sm:ml-0"
                         >
                           <X className="w-4 h-4 mr-2" /> Change
@@ -386,11 +386,10 @@ const SubmitSolution = () => {
                         <div className="space-y-2">
                           <Label>Technical Proposal / Solution PDF *</Label>
                           <div
-                            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                              solutionFile 
-                                ? 'bg-primary/5 border-primary/40' 
-                                : 'bg-muted/10 border-border hover:border-primary/40 hover:bg-muted/30'
-                            }`}
+                            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${solutionFile
+                              ? 'bg-primary/5 border-primary/40'
+                              : 'bg-muted/10 border-border hover:border-primary/40 hover:bg-muted/30'
+                              }`}
                             onClick={() => document.getElementById("solution-pdf-input")?.click()}
                           >
                             <input

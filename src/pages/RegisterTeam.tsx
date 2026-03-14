@@ -211,7 +211,7 @@ const RegisterTeam = () => {
       if (regFormFile) {
         regFileName = `${teamName.replace(/\s+/g, '_')}_${Date.now()}.${regFormFile.name.split('.').pop()}`;
         regFileType = regFormFile.type;
-        
+
         // Convert file to Base64
         regFileData = await new Promise((resolve) => {
           const reader = new FileReader();
@@ -288,8 +288,7 @@ const RegisterTeam = () => {
                 {steps.map((step, index) => (
                   <div key={step.id} className="flex items-center flex-1 last:flex-none">
                     <div className="flex flex-col items-center relative z-10">
-                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all ${
-                        currentStep >= step.id ? "gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground"
+                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all ${currentStep >= step.id ? "gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground"
                         }`}>
                         {currentStep > step.id ? <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" /> : <step.icon className="w-5 h-5 md:w-6 md:h-6" />}
                       </div>
@@ -348,10 +347,10 @@ const RegisterTeam = () => {
                     <div className="space-y-2">
                       <Label>Institute Number *</Label>
                       <div className="relative">
-                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           className="pl-10"
-                          placeholder="e.g. 123456"
+                          placeholder="12345"
                           value={instituteNumber}
                           onChange={(e) => setInstituteNumber(e.target.value.replace(/\D/g, ""))}
                         />
@@ -365,7 +364,7 @@ const RegisterTeam = () => {
                       </div>
                       <div className="grid md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Leader Name *</Label>
+                          <Label>Leader Full Name *</Label>
                           <div className="relative">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input className="pl-10" placeholder="Full name" value={leaderName} onChange={(e) => setLeaderName(e.target.value)} />
@@ -566,7 +565,7 @@ const RegisterTeam = () => {
                           Download the template from <a href="/resources" target="_blank" className="text-primary hover:underline">Resources</a>, get it signed by your college head, and upload a photo/PDF here.
                         </p>
 
-                         <div className="flex flex-col items-center gap-4">
+                        <div className="flex flex-col items-center gap-4">
                           <div
                             className="w-full sm:max-w-md border-2 border-dashed border-primary/30 rounded-xl p-6 md:p-8 cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all text-center"
                             onClick={() => document.getElementById("reg-form-input")?.click()}
@@ -697,7 +696,7 @@ const RegisterTeam = () => {
                 </Button>
               </div>
               <p className="text-[10px] md:text-xs text-muted-foreground mt-4 leading-relaxed font-medium">
-                Save this ID. A confirmation has been sent to:<br/>
+                Save this ID. A confirmation has been sent to:<br />
                 <span className="text-foreground font-bold break-all">{successData?.email}</span>
               </p>
             </div>
