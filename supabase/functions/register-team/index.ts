@@ -33,7 +33,9 @@ serve(async (req) => {
     const lovable = createClient(DB_LOVABLE, lovableKey);
     const external = createClient(DB_EXTERNAL, externalKey);
 
-    const primaryTable = "registered_teams";
+    // Lovable uses: registered_teams, External uses: team_registrations
+    const lovableTable = "registered_teams";
+    const externalTable = "team_registrations";
     const idColumn = "team_id";
 
     // ═══════════════════════════════════════════════════════════════
@@ -72,7 +74,7 @@ serve(async (req) => {
     // STEP 2: Check for duplicate registration
     // ═══════════════════════════════════════════════════════════════
     const { data: existing } = await lovable
-      .from(primaryTable)
+      .from(lovableTable)
       .select(idColumn)
       .eq("institute_number", data.institute_number?.trim() || "")
       .ilike("college_name", data.college_name?.trim() || "")
@@ -90,7 +92,7 @@ serve(async (req) => {
     // STEP 3: Generate team ID
     // ═══════════════════════════════════════════════════════════════
     const { count } = await lovable
-      .from(primaryTable)
+      .from(lovableTable)
       .select("*", { count: "exact", head: true });
 
     const nextNum = (count || 0) + 1;
@@ -141,7 +143,7 @@ serve(async (req) => {
 
     // Insert to Lovable (primary)
     const { data: lovData, error: lovError } = await lovable
-      .from(primaryTable)
+      .from(lovableTable)
       .insert(registrationData)
       .select(`team_name, ${idColumn}`)
       .single();
@@ -154,7 +156,7 @@ serve(async (req) => {
 
     // Insert to External (secondary - non-blocking)
     const { data: extData, error: extError } = await external
-      .from(primaryTable)
+      .from(externalTable)
       .insert(registrationData)
       .select(`team_name, ${idColumn}`)
       .single();

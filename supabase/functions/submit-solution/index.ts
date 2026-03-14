@@ -31,8 +31,10 @@ serve(async (req) => {
     const lovable = createClient(DB_LOVABLE, lovableKey);
     const external = createClient(DB_EXTERNAL, externalKey);
 
-    const regTable = "registered_teams";
-    const subTable = "submissions";
+    const lovableRegTable = "registered_teams";
+    const externalRegTable = "team_registrations";
+    const lovableSubTable = "submissions";
+    const externalSubTable = "team_solutions";
     const teamIdCol = "team_id";
 
     // ═══════════════════════════════════════════════════════════════
@@ -61,7 +63,7 @@ serve(async (req) => {
 
         // Check in Lovable first
         const { data: team, error: findError } = await lovable
-          .from(regTable)
+          .from(lovableRegTable)
           .select(`${teamIdCol}, team_name, leader_email`)
           .eq(teamIdCol, team_id.trim())
           .ilike("college_name", `%${college_name?.trim() || ""}%`)
@@ -112,7 +114,7 @@ serve(async (req) => {
       // Step 1: Verify team exists and get their details
       // ───────────────────────────────────────────────────────────────
       const { data: teamData, error: teamError } = await lovable
-        .from(regTable)
+        .from(lovableRegTable)
         .select(`${teamIdCol}, team_name, leader_email`)
         .eq(teamIdCol, teamId)
         .ilike("college_name", `%${collegeName || ""}%`)
@@ -156,7 +158,7 @@ serve(async (req) => {
 
       // Insert to Lovable
       const { data: lovSubData, error: lovSubError } = await lovable
-        .from(subTable)
+        .from(lovableSubTable)
         .insert(submissionData)
         .select("id")
         .single();
@@ -167,7 +169,7 @@ serve(async (req) => {
 
       // Insert to External (non-blocking)
       const { data: extSubData, error: extSubError } = await external
-        .from(subTable)
+        .from(externalSubTable)
         .insert(submissionData)
         .select("id")
         .single();
