@@ -19,12 +19,10 @@ const SubmitSolution = () => {
   const [collegeName, setCollegeName] = useState("");
   const [instituteNumber, setInstituteNumber] = useState("");
   const [verifiedTeam, setVerifiedTeam] = useState<{ 
-    team_name: string, 
-    leader_name: string,
-    college_name: string,
     problem_statement: string, 
     problem_description: string,
     domain: string,
+    company_name: string,
     registration_id?: string
   } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -151,7 +149,6 @@ const SubmitSolution = () => {
       formData.set("youtube_link", youtubeLink.trim());
       formData.set("solution_description", description.trim());
       formData.append("solution_file", solutionFile);
-      if (companyName) formData.set("company_name", companyName);
 
       const { data: result, error: invokeError } = await edgeFunctionsClient.functions.invoke("submit-solution", {
         body: formData,
@@ -347,9 +344,12 @@ const SubmitSolution = () => {
                           <div>
                             <p className="text-[10px] text-primary font-bold uppercase tracking-widest mb-1.5 leading-none">ALLOCATED PROBLEM STATEMENT</p>
                             <h4 className="text-xl font-heading font-bold text-foreground leading-tight uppercase">{verifiedTeam.problem_statement}</h4>
-                            <div className="mt-2">
+                            <div className="mt-2 flex flex-wrap gap-2">
                               <span className="inline-block px-3 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold uppercase">
                                 {verifiedTeam.domain}
+                              </span>
+                              <span className="inline-block px-3 py-1 rounded-full bg-muted-foreground/10 text-muted-foreground text-[10px] font-bold uppercase border border-border">
+                                {verifiedTeam.company_name}
                               </span>
                             </div>
                           </div>
@@ -363,20 +363,7 @@ const SubmitSolution = () => {
                       </div>
 
                       <div className="grid gap-6">
-                        {/* Company Name */}
-                        <div className="space-y-2">
-                          <Label>Company / Organization Name *</Label>
-                          <div className="relative">
-                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              placeholder="e.g. Google, TCS, or N/A"
-                              className="pl-10 h-11"
-                              value={companyName}
-                              onChange={(e) => setCompanyName(e.target.value)}
-                            />
-                          </div>
-                          <p className="text-[11px] text-muted-foreground italic ml-1">The company you specifically chose for this problem statement.</p>
-                        </div>
+
 
                         {/* YouTube URL */}
                         <div className="space-y-2">

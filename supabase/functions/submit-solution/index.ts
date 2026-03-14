@@ -58,7 +58,7 @@ serve(async (req) => {
         // Fetch details from team_registrations. Use 'id' as 'registration_id'
         const { data: team, error: findError } = await db
           .from(regTable)
-          .select(`${teamIdCol}, id, team_name, leader_name, college_name, leader_email, problem_statement_title, problem_description, domain`)
+          .select(`${teamIdCol}, id, team_name, leader_name, college_name, leader_email, problem_statement_title, problem_description, domain, mentor_name`)
           .eq(teamIdCol, team_id.trim())
           .ilike("college_name", `%${college_name?.trim() || ""}%`)
           .eq("institute_number", institute_number?.trim() || "")
@@ -82,6 +82,7 @@ serve(async (req) => {
             problem_statement: team.problem_statement_title || "Problem Statement",
             problem_description: team.problem_description || "",
             domain: team.domain || "Unknown Domain",
+            company_name: team.mentor_name || "N/A",
             registration_id: team.id // Note: using 'id' as the unique registration reference
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -121,7 +122,7 @@ serve(async (req) => {
       // Step 1: Verify team exists and get their primary 'id'
       const { data: teamData, error: teamError } = await db
         .from(regTable)
-        .select(`id, team_name, leader_email`)
+        .select(`id, team_name, leader_email, mentor_name`)
         .eq(teamIdCol, teamId)
         .ilike("college_name", `%${collegeName || ""}%`)
         .eq("institute_number", instituteNumber || "")
@@ -146,7 +147,8 @@ serve(async (req) => {
         throw new Error(`File upload failed: ${uploadError.message}`);
       }
 
-      const companyName = formData.get("company_name") as string;
+      // Automatically use mentor_name from registration as company_name
+      const companyName = teamData.mentor_name;
 
       // Step 3: Create submission record
       const submissionData = {
