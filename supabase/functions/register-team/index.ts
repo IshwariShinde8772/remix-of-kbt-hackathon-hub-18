@@ -117,39 +117,38 @@ serve(async (req) => {
     console.log(`📝 Generated Team ID: ${generatedId}`);
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 4: Prepare registration data
+    // STEP 4: Prepare registration data (matching actual table schema)
     // ═══════════════════════════════════════════════════════════════
     const membersArray = data.members || [];
+    
+    // Build members JSON for the members JSONB column
+    const membersJson = membersArray.map((member: any) => ({
+      name: member.name,
+      email: member.email,
+      contact: member.contact,
+    }));
+
     const registrationData = {
       team_name: data.team_name || "Unknown Team",
       college_name: data.college_name || "Unknown College",
       institute_number: data.institute_number || "000000",
       leader_name: data.leader_name || "Unknown",
       leader_email: data.leader_email || "unknown@email.com",
-      leader_phone: data.leader_phone || "0000000000",
-      selected_domain: data.selected_domain || "Software",
-      selected_problem_id: data.selected_problem_id || null,
+      leader_contact: data.leader_contact || data.leader_phone || "0000000000",
+      domain: data.domain || data.selected_domain || "Software",
+      problem_statement_id: data.problem_statement_id || data.selected_problem_id || "PS-0000",
+      problem_statement_title: data.problem_statement_title || "Unknown Problem",
+      problem_description: data.problem_description || "No description",
       mentor_name: data.mentor_name || "N/A",
       mentor_email: data.mentor_email || "N/A",
       mentor_contact: data.mentor_contact || "N/A",
       registration_form_url: finalRegFormUrl,
       team_id: generatedId,
-      member2_name: membersArray[0]?.name || null,
-      member2_email: membersArray[0]?.email || null,
-      member2_contact: membersArray[0]?.contact || null,
-      member2_role: membersArray[0] ? "Member" : null,
-      member3_name: membersArray[1]?.name || null,
-      member3_email: membersArray[1]?.email || null,
-      member3_contact: membersArray[1]?.contact || null,
-      member3_role: membersArray[1] ? "Member" : null,
-      member4_name: membersArray[2]?.name || null,
-      member4_email: membersArray[2]?.email || null,
-      member4_contact: membersArray[2]?.contact || null,
-      member4_role: membersArray[2] ? "Member" : null,
-      member5_name: membersArray[3]?.name || null,
-      member5_email: membersArray[3]?.email || null,
-      member5_contact: membersArray[3]?.contact || null,
-      member5_role: membersArray[3] ? "Member" : null,
+      members: membersJson,
+      city: data.city || null,
+      state: data.state || null,
+      member_contacts: membersArray.map((m: any) => m.contact),
+      status: "registered",
     };
 
     // ═══════════════════════════════════════════════════════════════
