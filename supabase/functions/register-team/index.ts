@@ -186,11 +186,9 @@ serve(async (req) => {
         }
       }
       
-      // Other error or last attempt
+      // Other error - don't retry, throw immediately
       console.error(`❌ Insert failed (attempt ${insertAttempt}): ${err.message}`);
-      if (insertAttempt === 3) {
-        throw new Error("Registration failed - could not generate unique team ID");
-      }
+      throw new Error(`Database error: ${err.message}`);
     }
 
     const teamId = finalTeamId;

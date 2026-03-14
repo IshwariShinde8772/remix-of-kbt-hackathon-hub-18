@@ -170,14 +170,6 @@ serve(async (req) => {
         throw new Error(`Submission insert failed: ${subError.message}`);
       }
 
-      // Insert to External (non-blocking)
-      const { data: extSubData, error: extSubError } = await external
-        .from(externalSubTable)
-        .insert(submissionData)
-        .select("id")
-        .single();
-
-      // Note: If dual-sync needed in future, add secondary here
       console.log(`✅ Submission recorded`);
 
       // ───────────────────────────────────────────────────────────────
