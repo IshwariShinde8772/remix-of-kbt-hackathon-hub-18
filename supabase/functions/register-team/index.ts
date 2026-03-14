@@ -127,7 +127,6 @@ serve(async (req) => {
       leader_name: data.leader_name || "Unknown",
       leader_email: data.leader_email || "unknown@email.com",
       leader_phone: data.leader_phone || "0000000000",
-      approach_description: data.approach_description || data.problem_description || "No description",
       selected_domain: data.selected_domain || "Software",
       selected_problem_id: data.selected_problem_id || null,
       mentor_name: data.mentor_name || "N/A",
