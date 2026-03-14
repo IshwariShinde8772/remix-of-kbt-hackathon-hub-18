@@ -9,7 +9,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DB_LOVABLE = "https://wunqjksrgdppzcucwcyd.supabase.co";
 const DB_EXTERNAL = "https://lxawemydhhmqjahttrlb.supabase.co";
 
 serve(async (req) => {
@@ -21,25 +20,22 @@ serve(async (req) => {
     const data = await req.json();
     const { reg_file_data, reg_file_name, reg_file_type } = data;
 
-    // Get API keys from environment
+    // Get API key from environment
     // When running on External, SUPABASE_SERVICE_ROLE_KEY = External's key
-    // We need LOVABLE_SERVICE_ROLE_KEY set for the Lovable DB access
-    const lovableKey = Deno.env.get("LOVABLE_SERVICE_ROLE_KEY") || "";
     const externalKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-    console.log(`🔑 API Keys - Lovable: ${lovableKey ? "✅" : "❌"}, External: ${externalKey ? "✅" : "❌"}`);
+    console.log(`🔑 API Key - External: ${externalKey ? "✅" : "❌"}`);
 
-    if (!lovableKey || !externalKey) {
-      throw new Error(`Missing Supabase credentials: lovable=${!!lovableKey}, external=${!!externalKey}`);
+    if (!externalKey) {
+      throw new Error("Missing Supabase credentials");
     }
 
-    // Initialize both database clients
-    const lovable = createClient(DB_LOVABLE, lovableKey);
-    const external = createClient(DB_EXTERNAL, externalKey);
+    // Initialize database client (using External as primary)
+    const db = createClient(DB_EXTERNAL, externalKey);
 
     // Lovable uses: registered_teams, External uses: team_registrations
-    const lovableTable = "registered_teams";
-    const externalTable = "team_registrations";
+    const tablePrefix = "team_"; // External table naming
+    const table = "team_registrations";
     const idColumn = "team_id";
 
     // ═══════════════════════════════════════════════════════════════
@@ -53,8 +49,8 @@ serve(async (req) => {
         const fileName = `${data.college_name?.replace(/[^a-zA-Z0-9]/g, "_") || "college"}_${Date.now()}_${reg_file_name}`;
         const contentType = reg_file_type || "application/pdf";
 
-        // Upload to Lovable storage
-        const { error: uploadError } = await lovable.storage
+        // Upload to storage
+        const { error: uploadError } = await db.storage
           .from("solutions")
           .upload(`registrations/${fileName}`, decodedFileData, { contentType, upsert: false });
 
@@ -62,7 +58,7 @@ serve(async (req) => {
           throw new Error(`File upload failed: ${uploadError.message}`);
         }
 
-        const { data: { publicUrl } } = lovable.storage
+        const { data: { publicUrl } } = db.storage
           .from("solutions")
           .getPublicUrl(`registrations/${fileName}`);
 
@@ -75,26 +71,17 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 2: Check for duplicate registration in both databases
+    // STEP 2: Check for duplicate registration
     // ═══════════════════════════════════════════════════════════════
-    const { data: existingLov } = await lovable
-      .from(lovableTable)
+    const { data: existing } = await db
+      .from(table)
       .select(idColumn)
       .eq("institute_number", data.institute_number?.trim() || "")
       .ilike("college_name", data.college_name?.trim() || "")
       .limit(1);
 
-    const { data: existingExt } = await external
-      .from(externalTable)
-      .select(idColumn)
-      .eq("institute_number", data.institute_number?.trim() || "")
-      .ilike("college_name", data.college_name?.trim() || "")
-      .limit(1);
-
-    if ((existingLov && existingLov.length > 0) || (existingExt && existingExt.length > 0)) {
-      const existingId = existingLov && existingLov.length > 0 
-        ? (existingLov[0] as any)[idColumn]
-        : (existingExt[0] as any)[idColumn];
+    if (existing && existing.length > 0) {
+      const existingId = (existing[0] as any)[idColumn];
       return new Response(
         JSON.stringify({ error: `This team is already registered with ID: ${existingId}` }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -107,8 +94,8 @@ serve(async (req) => {
     let generatedId = `KBT-0001`;
     
     // Query for highest existing team_id
-    const { data: existingIds, error: idError } = await lovable
-      .from(lovableTable)
+    const { data: existingIds, error: idError } = await db
+      .from(table)
       .select(idColumn)
       .order(idColumn, { ascending: false })
       .limit(1);
@@ -167,30 +154,27 @@ serve(async (req) => {
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 5: Save to BOTH databases (with retry logic for duplicate IDs)
+    // STEP 5: Save to database (with retry logic for duplicate IDs)
     // ═══════════════════════════════════════════════════════════════
-    let lovableResult = null;
-    let externalResult = null;
     let finalTeamId = generatedId;
     let insertAttempt = 0;
-    let lovError = null;
+    let dbResult = null;
 
     // Retry up to 3 times if we get duplicate key errors
     while (insertAttempt < 3) {
       insertAttempt++;
       registrationData.team_id = finalTeamId;
 
-      // Insert to Lovable (primary)
-      const { data: lovData, error: err } = await lovable
-        .from(lovableTable)
+      // Insert to database
+      const { data: insertData, error: err } = await db
+        .from(table)
         .insert(registrationData)
         .select(`team_name, ${idColumn}`)
         .single();
 
       if (!err) {
         // Success!
-        lovableResult = lovData;
-        lovError = null;
+        dbResult = insertData;
         console.log(`✅ Successfully inserted with team_id: ${finalTeamId}`);
         break;
       } else if (err.code === "23505" && insertAttempt < 3) {
@@ -205,34 +189,13 @@ serve(async (req) => {
       }
       
       // Other error or last attempt
-      lovError = err;
-      console.error(`❌ Lovable insert failed (attempt ${insertAttempt}): ${err.message}`);
+      console.error(`❌ Insert failed (attempt ${insertAttempt}): ${err.message}`);
       if (insertAttempt === 3) {
         throw new Error("Registration failed - could not generate unique team ID");
       }
     }
 
-    // Update generatedId if it was changed due to retry
     const teamId = finalTeamId;
-
-    // Insert to External (secondary - non-blocking)
-    const { data: extData, error: extError } = await external
-      .from(externalTable)
-      .insert(registrationData)
-      .select(`team_name, ${idColumn}`)
-      .single();
-
-    if (extError) {
-      // If it's a duplicate key error, it's not critical - team exists
-      if (extError.code === "23505") {
-        console.log(`ℹ️ Team already exists in external database (${teamId})`);
-      } else {
-        console.error(`⚠️ External database sync warning: ${extError.message}`);
-      }
-    } else {
-      externalResult = extData;
-      console.log(`✅ Synced to external database`);
-    }
 
     // ═══════════════════════════════════════════════════════════════
     // STEP 6: Log activity to both databases
@@ -251,22 +214,13 @@ serve(async (req) => {
       status: "success",
     };
 
-    // Log to Lovable
-    const { error: lovLogError } = await lovable
+    // Log activity
+    const { error: logError } = await db
       .from("activity_logs")
       .insert(logEntry);
     
-    if (lovLogError) {
-      console.error(`⚠️ Lovable log error: ${lovLogError.message}`);
-    }
-
-    // Log to External
-    const { error: extLogError } = await external
-      .from("activity_logs")
-      .insert(logEntry);
-    
-    if (extLogError) {
-      console.error(`⚠️ External log error: ${extLogError.message}`);
+    if (logError) {
+      console.error(`⚠️ Log error: ${logError.message}`);
     }
 
     console.log(`✅ Logged registration for team ${teamId}`);
@@ -387,7 +341,6 @@ serve(async (req) => {
         success: true,
         message: "Registration successful!",
         team_id: teamId,
-        synced_to: externalResult ? "both_databases" : "primary_database",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -8,7 +8,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DB_LOVABLE = "https://wunqjksrgdppzcucwcyd.supabase.co";
 const DB_EXTERNAL = "https://lxawemydhhmqjahttrlb.supabase.co";
 
 serve(async (req) => {
@@ -19,26 +18,18 @@ serve(async (req) => {
   const contentType = req.headers.get("content-type") || "";
 
   try {
-    // Get API keys from environment
-    // When running on External, SUPABASE_SERVICE_ROLE_KEY = External's key
-    // We need LOVABLE_SERVICE_ROLE_KEY set for the Lovable DB access
-    const lovableKey = Deno.env.get("LOVABLE_SERVICE_ROLE_KEY") || "";
+    // Get API key from environment
     const externalKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-    console.log(`🔑 API Keys - Lovable: ${lovableKey ? "✅" : "❌"}, External: ${externalKey ? "✅" : "❌"}`);
-
-    if (!lovableKey || !externalKey) {
-      throw new Error(`Missing Supabase credentials: lovable=${!!lovableKey}, external=${!!externalKey}`);
+    if (!externalKey) {
+      throw new Error("Missing Supabase credentials");
     }
 
-    // Initialize both database clients
-    const lovable = createClient(DB_LOVABLE, lovableKey);
-    const external = createClient(DB_EXTERNAL, externalKey);
+    // Initialize database client
+    const db = createClient(DB_EXTERNAL, externalKey);
 
-    const lovableRegTable = "registered_teams";
-    const externalRegTable = "team_registrations";
-    const lovableSubTable = "submissions";
-    const externalSubTable = "team_solutions";
+    const regTable = "team_registrations";
+    const subTable = "team_solutions";
     const teamIdCol = "team_id";
 
     // ═══════════════════════════════════════════════════════════════
@@ -65,9 +56,9 @@ serve(async (req) => {
           );
         }
 
-        // Check in Lovable first
-        const { data: team, error: findError } = await lovable
-          .from(lovableRegTable)
+        // Check in database
+        const { data: team, error: findError } = await db
+          .from(regTable)
           .select(`${teamIdCol}, team_name, leader_email`)
           .eq(teamIdCol, team_id.trim())
           .ilike("college_name", `%${college_name?.trim() || ""}%`)
@@ -117,8 +108,8 @@ serve(async (req) => {
       // ───────────────────────────────────────────────────────────────
       // Step 1: Verify team exists and get their details
       // ───────────────────────────────────────────────────────────────
-      const { data: teamData, error: teamError } = await lovable
-        .from(lovableRegTable)
+      const { data: teamData, error: teamError } = await db
+        .from(regTable)
         .select(`${teamIdCol}, team_name, leader_email`)
         .eq(teamIdCol, teamId)
         .ilike("college_name", `%${collegeName || ""}%`)
@@ -138,7 +129,7 @@ serve(async (req) => {
       const fileName = `${teamId}-${Date.now()}.pdf`;
       const fileBuffer = await pdfFile.arrayBuffer();
 
-      const { error: uploadError } = await lovable.storage
+      const { error: uploadError } = await db.storage
         .from("solutions")
         .upload(fileName, fileBuffer, { contentType: "application/pdf" });
 
@@ -160,15 +151,15 @@ serve(async (req) => {
         submitted_at: new Date().toISOString(),
       };
 
-      // Insert to Lovable
-      const { data: lovSubData, error: lovSubError } = await lovable
-        .from(lovableSubTable)
+      // Insert to database
+      const { data: subData, error: subError } = await db
+        .from(subTable)
         .insert(submissionData)
         .select("id")
         .single();
 
-      if (lovSubError) {
-        throw new Error(`Submission insert failed: ${lovSubError.message}`);
+      if (subError) {
+        throw new Error(`Submission insert failed: ${subError.message}`);
       }
 
       // Insert to External (non-blocking)
@@ -178,19 +169,11 @@ serve(async (req) => {
         .select("id")
         .single();
 
-      if (extSubError) {
-        // If it's a duplicate key error, it's acceptable - submission exists
-        if (extSubError.code === "23505") {
-          console.log(`ℹ️ Submission already exists in external database for team ${teamId}`);
-        } else {
-          console.error(`⚠️ External submission sync warning: ${extSubError.message}`);
-        }
-      } else {
-        console.log(`✅ Synced submission to external database`);
-      }
+      // Note: If dual-sync needed in future, add secondary here
+      console.log(`✅ Submission recorded`);
 
       // ───────────────────────────────────────────────────────────────
-      // Step 4: Log activity to both databases
+      // Step 4: Log activity
       // ───────────────────────────────────────────────────────────────
       const logEntry = {
         timestamp: new Date().toISOString(),
@@ -205,22 +188,13 @@ serve(async (req) => {
         status: "success",
       };
 
-      // Log to Lovable
-      const { error: lovLogError } = await lovable
+      // Log activity
+      const { error: logError } = await db
         .from("activity_logs")
         .insert(logEntry);
       
-      if (lovLogError) {
-        console.error(`⚠️ Lovable log error: ${lovLogError.message}`);
-      }
-
-      // Log to External
-      const { error: extLogError } = await external
-        .from("activity_logs")
-        .insert(logEntry);
-      
-      if (extLogError) {
-        console.error(`⚠️ External log error: ${extLogError.message}`);
+      if (logError) {
+        console.error(`⚠️ Log error: ${logError.message}`);
       }
 
       console.log(`✅ Logged submission for team ${teamId}`);
@@ -319,8 +293,7 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           message: "Solution submitted successfully!",
-          submission_id: lovSubData.id,
-          synced_to: extSubData ? "both_databases" : "primary_database",
+        submission_id: subData.id,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
