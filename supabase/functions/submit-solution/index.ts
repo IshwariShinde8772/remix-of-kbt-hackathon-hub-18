@@ -167,10 +167,13 @@ serve(async (req) => {
         .single();
 
       if (subError) {
+        console.error(`❌ Submission insert error: ${subError.message}`);
+        console.error(`❌ Error code: ${subError.code}`);
+        console.error(`❌ Full error: ${JSON.stringify(subError)}`);
         throw new Error(`Submission insert failed: ${subError.message}`);
       }
 
-      console.log(`✅ Submission recorded`);
+      console.log(`✅ Submission recorded with ID: ${subData.id}`);
 
       // ───────────────────────────────────────────────────────────────
       // Step 4: Log activity
@@ -346,7 +349,7 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           message: "Solution submitted successfully!",
-        submission_id: subData.id,
+          submission_id: subData.id,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

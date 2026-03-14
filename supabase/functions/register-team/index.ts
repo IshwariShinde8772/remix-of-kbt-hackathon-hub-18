@@ -163,6 +163,9 @@ serve(async (req) => {
       insertAttempt++;
       registrationData.team_id = finalTeamId;
 
+      console.log(`📍 Attempting insert #${insertAttempt} with team_id: ${finalTeamId}`);
+      console.log(`📦 Inserting into table: ${table}`);
+
       // Insert to database
       const { data: insertData, error: err } = await db
         .from(table)
@@ -177,17 +180,20 @@ serve(async (req) => {
         break;
       } else if (err.code === "23505" && insertAttempt < 3) {
         // Duplicate key - try next ID
+        console.warn(`⚠️ Duplicate key error (code 23505), trying next ID...`);
         const match = finalTeamId.match(/KBT-(\d+)/);
         if (match) {
           const nextNum = parseInt(match[1]) + 1;
           finalTeamId = `KBT-${nextNum.toString().padStart(4, "0")}`;
-          console.log(`⚠️ Duplicate ID, retrying with: ${finalTeamId}`);
+          console.log(`⚠️ Retrying with new ID: ${finalTeamId}`);
           continue;
         }
       }
       
       // Other error - don't retry, throw immediately
       console.error(`❌ Insert failed (attempt ${insertAttempt}): ${err.message}`);
+      console.error(`❌ Error code: ${err.code}`);
+      console.error(`❌ Full error: ${JSON.stringify(err)}`);
       throw new Error(`Database error: ${err.message}`);
     }
 
