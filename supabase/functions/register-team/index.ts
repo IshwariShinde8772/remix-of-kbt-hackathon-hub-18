@@ -98,14 +98,32 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 3: Generate team ID
+    // STEP 3: Generate team ID (find highest existing ID and increment)
     // ═══════════════════════════════════════════════════════════════
-    const { count } = await lovable
+    let generatedId = `KBT-0001`;
+    
+    // Query for highest existing team_id
+    const { data: existingIds, error: idError } = await lovable
       .from(lovableTable)
-      .select("*", { count: "exact", head: true });
+      .select(idColumn)
+      .order(idColumn, { ascending: false })
+      .limit(1);
 
-    const nextNum = (count || 0) + 1;
-    const generatedId = `KBT-${nextNum.toString().padStart(4, "0")}`;
+    if (!idError && existingIds && existingIds.length > 0) {
+      const highestId = (existingIds[0] as any)[idColumn];
+      // Extract number from KBT-XXXX format
+      const match = highestId?.match(/KBT-(\d+)/);
+      if (match) {
+        const nextNum = parseInt(match[1]) + 1;
+        generatedId = `KBT-${nextNum.toString().padStart(4, "0")}`;
+      }
+    } else if (idError) {
+      console.warn(`⚠️ Warning querying existing IDs: ${idError.message}`);
+      // Use timestamp-based fallback ID if query fails
+      generatedId = `KBT-${Date.now().toString().slice(-4)}`;
+    }
+
+    console.log(`📝 Generated Team ID: ${generatedId}`);
 
     // ═══════════════════════════════════════════════════════════════
     // STEP 4: Prepare registration data
@@ -145,23 +163,53 @@ serve(async (req) => {
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 5: Save to BOTH databases
+    // STEP 5: Save to BOTH databases (with retry logic for duplicate IDs)
     // ═══════════════════════════════════════════════════════════════
     let lovableResult = null;
     let externalResult = null;
+    let finalTeamId = generatedId;
+    let insertAttempt = 0;
+    let lovError = null;
 
-    // Insert to Lovable (primary)
-    const { data: lovData, error: lovError } = await lovable
-      .from(lovableTable)
-      .insert(registrationData)
-      .select(`team_name, ${idColumn}`)
-      .single();
+    // Retry up to 3 times if we get duplicate key errors
+    while (insertAttempt < 3) {
+      insertAttempt++;
+      registrationData.team_id = finalTeamId;
 
-    if (lovError) {
-      console.error(`❌ Lovable insert failed: ${lovError.message}`);
-      throw new Error("Registration failed in primary database");
+      // Insert to Lovable (primary)
+      const { data: lovData, error: err } = await lovable
+        .from(lovableTable)
+        .insert(registrationData)
+        .select(`team_name, ${idColumn}`)
+        .single();
+
+      if (!err) {
+        // Success!
+        lovableResult = lovData;
+        lovError = null;
+        console.log(`✅ Successfully inserted with team_id: ${finalTeamId}`);
+        break;
+      } else if (err.code === "23505" && insertAttempt < 3) {
+        // Duplicate key - try next ID
+        const match = finalTeamId.match(/KBT-(\d+)/);
+        if (match) {
+          const nextNum = parseInt(match[1]) + 1;
+          finalTeamId = `KBT-${nextNum.toString().padStart(4, "0")}`;
+          console.log(`⚠️ Duplicate ID, retrying with: ${finalTeamId}`);
+          continue;
+        }
+      }
+      
+      // Other error or last attempt
+      lovError = err;
+      console.error(`❌ Lovable insert failed (attempt ${insertAttempt}): ${err.message}`);
+      if (insertAttempt === 3) {
+        throw new Error("Registration failed - could not generate unique team ID");
+      }
     }
-    lovableResult = lovData;
+
+    // Update generatedId if it was changed due to retry
+    const teamId = finalTeamId;
 
     // Insert to External (secondary - non-blocking)
     const { data: extData, error: extError } = await external
@@ -173,7 +221,7 @@ serve(async (req) => {
     if (extError) {
       // If it's a duplicate key error, it's not critical - team exists
       if (extError.code === "23505") {
-        console.log(`ℹ️ Team already exists in external database (${generatedId})`);
+        console.log(`ℹ️ Team already exists in external database (${teamId})`);
       } else {
         console.error(`⚠️ External database sync warning: ${extError.message}`);
       }
@@ -181,8 +229,6 @@ serve(async (req) => {
       externalResult = extData;
       console.log(`✅ Synced to external database`);
     }
-
-    const teamId = generatedId;
 
     // ═══════════════════════════════════════════════════════════════
     // STEP 6: Log activity to both databases
