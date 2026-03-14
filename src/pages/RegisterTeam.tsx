@@ -238,8 +238,9 @@ const RegisterTeam = () => {
             members,
             selected_problem_id: selectedProblemId,
             selected_domain: selectedDomain,
-            problem_title: selectedProblem?.problem_title || "",
-            approach_description: selectedProblem?.problem_description || "",
+            problem_statement_title: selectedProblem?.problem_title || "",
+            problem_description: selectedProblem?.problem_description || "",
+            approach_description: selectedProblem?.problem_description || "", // Keep for legacy if needed
             mentor_name: mentorName,
             mentor_email: mentorEmail,
             mentor_contact: mentorContact,

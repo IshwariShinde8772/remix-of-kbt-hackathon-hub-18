@@ -146,12 +146,15 @@ serve(async (req) => {
         throw new Error(`File upload failed: ${uploadError.message}`);
       }
 
+      const companyName = formData.get("company_name") as string;
+
       // Step 3: Create submission record
       const submissionData = {
         team_id: teamId,
         registration_id: teamData.id, // Linking via the primary id
         solution_title: solutionTitle,
         solution_description: solutionDescription,
+        company_name: companyName || null,
         video_link: youtubeLink,
         solution_pdf_url: fileName,
         status: "submitted",
