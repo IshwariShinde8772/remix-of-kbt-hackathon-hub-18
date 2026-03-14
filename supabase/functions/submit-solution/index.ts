@@ -217,6 +217,7 @@ serve(async (req) => {
       // Step 5: Send confirmation email (non-blocking)
       // ───────────────────────────────────────────────────────────────
       const sendSubmissionEmail = async () => {
+        console.log("📧 Starting submission email send process...");
         const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
         const gmailUser = "kbtavinyathon@gmail.com";
 
@@ -281,7 +282,9 @@ serve(async (req) => {
 
           console.log(`✅ Submission email sent to ${teamData.leader_email}`);
         } catch (emailError: any) {
-          console.error(`⚠️ Email send failed: ${emailError.message}`);
+          console.error(`❌ Email send failed | Error: ${emailError.message} | Code: ${emailError.code || 'unknown'}`);
+          console.error(`Email error details: ${JSON.stringify(emailError)}`);
+          throw emailError;
         }
       };
 

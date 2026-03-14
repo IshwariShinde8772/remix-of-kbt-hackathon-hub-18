@@ -217,8 +217,11 @@ serve(async (req) => {
     // STEP 7: Send confirmation email (non-blocking)
     // ═══════════════════════════════════════════════════════════════
     const sendRegistrationEmail = async () => {
+      console.log("📧 Starting email send process...");
       const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
       const gmailUser = "kbtavinyathon@gmail.com";
+
+      console.log(`📧 Gmail config: user=${gmailUser}, hasPassword=${!!gmailAppPassword}`);
 
       if (!gmailAppPassword) {
         console.error("⚠️ GMAIL_APP_PASSWORD not set - skipping email");
@@ -226,6 +229,7 @@ serve(async (req) => {
       }
 
       try {
+        console.log(`📧 Sending email to: ${data.leader_email}`);
         const emailHtml = `<!DOCTYPE html>
 <html>
 <head><style>
@@ -299,7 +303,9 @@ serve(async (req) => {
 
         console.log(`✅ Registration email sent to ${data.leader_email}`);
       } catch (emailError: any) {
-        console.error(`⚠️ Email send failed: ${emailError.message}`);
+        console.error(`❌ Email send failed | Error: ${emailError.message} | Code: ${emailError.code || 'unknown'}`);
+        console.error(`Email error details: ${JSON.stringify(emailError)}`);
+        throw emailError;
       }
     };
 
