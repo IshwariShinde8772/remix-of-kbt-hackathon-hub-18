@@ -283,28 +283,33 @@ const RegisterTeam = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
             {/* Step Indicator */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
+            <div className="mb-8 overflow-x-auto pb-4 scrollbar-hide">
+              <div className="flex items-center justify-between min-w-[500px] md:min-w-0 px-2">
                 {steps.map((step, index) => (
-                  <div key={step.id} className="flex items-center flex-1">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${currentStep >= step.id ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  <div key={step.id} className="flex items-center flex-1 last:flex-none">
+                    <div className="flex flex-col items-center relative z-10">
+                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all ${
+                        currentStep >= step.id ? "gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground"
                         }`}>
-                        {currentStep > step.id ? <CheckCircle2 className="w-6 h-6" /> : <step.icon className="w-6 h-6" />}
+                        {currentStep > step.id ? <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" /> : <step.icon className="w-5 h-5 md:w-6 md:h-6" />}
                       </div>
-                      <span className={`text-xs mt-1 font-medium ${currentStep >= step.id ? "text-foreground" : "text-muted-foreground"}`}>
-                        Step {step.id} of 4
-                      </span>
-                      <span className={`text-sm font-semibold ${currentStep >= step.id ? "text-foreground" : "text-muted-foreground"}`}>
-                        {step.title}
-                      </span>
+                      <div className="absolute top-12 md:top-14 flex flex-col items-center w-max">
+                        <span className={`hidden md:block text-[10px] uppercase tracking-tighter font-bold ${currentStep >= step.id ? "text-primary" : "text-muted-foreground"}`}>
+                          Step {step.id}
+                        </span>
+                        <span className={`text-[10px] md:text-sm font-bold uppercase tracking-tight whitespace-nowrap ${currentStep >= step.id ? "text-foreground" : "text-muted-foreground"}`}>
+                          {step.title}
+                        </span>
+                      </div>
                     </div>
                     {index < steps.length - 1 && (
-                      <div className={`flex-1 h-1 mx-4 rounded ${currentStep > step.id ? "gradient-primary" : "bg-muted"}`} />
+                      <div className={`flex-1 h-0.5 md:h-1 mx-2 md:mx-4 rounded-full self-center mb-5 md:mb-6 ${currentStep > step.id ? "gradient-primary" : "bg-muted"}`} />
                     )}
                   </div>
                 ))}
               </div>
+              {/* Spacer for the absolute labels */}
+              <div className="h-10 md:h-12" />
             </div>
 
             {/* Form Card */}
@@ -561,9 +566,9 @@ const RegisterTeam = () => {
                           Download the template from <a href="/resources" target="_blank" className="text-primary hover:underline">Resources</a>, get it signed by your college head, and upload a photo/PDF here.
                         </p>
 
-                        <div className="flex flex-col items-center gap-3">
+                         <div className="flex flex-col items-center gap-4">
                           <div
-                            className="w-full max-w-sm border-2 border-dashed border-primary/30 rounded-xl p-4 cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all text-center"
+                            className="w-full sm:max-w-md border-2 border-dashed border-primary/30 rounded-xl p-6 md:p-8 cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all text-center"
                             onClick={() => document.getElementById("reg-form-input")?.click()}
                           >
                             <input
@@ -574,32 +579,36 @@ const RegisterTeam = () => {
                               onChange={(e) => setRegFormFile(e.target.files?.[0] || null)}
                             />
                             {regFormFile ? (
-                              <div className="space-y-1">
-                                <div className="w-10 h-10 bg-primary/10 rounded-lg mx-auto flex items-center justify-center">
-                                  <FileText className="w-5 h-5 text-primary" />
+                              <div className="space-y-2">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg mx-auto flex items-center justify-center">
+                                  <FileText className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                                 </div>
-                                <p className="text-foreground font-semibold text-sm">{regFormFile.name}</p>
-                                <p className="text-green-600 text-xs font-medium">✓ {(regFormFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                                <p className="text-foreground font-semibold text-sm break-all px-2">{regFormFile.name}</p>
+                                <p className="text-green-600 text-xs font-bold uppercase tracking-wider">✓ {(regFormFile.size / 1024 / 1024).toFixed(1)} MB</p>
                                 <button
                                   type="button"
-                                  className="text-destructive text-xs hover:underline mt-1"
+                                  className="text-destructive text-xs font-bold uppercase hover:underline mt-2"
                                   onClick={(e) => { e.stopPropagation(); setRegFormFile(null); }}
                                 >
                                   Remove file
                                 </button>
                               </div>
                             ) : (
-                              <div className="space-y-1">
+                              <div className="space-y-2">
                                 <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
-                                <p className="text-sm font-medium text-foreground">Click to choose file</p>
-                                <p className="text-xs text-muted-foreground">PDF or Image · max 10MB</p>
+                                <p className="text-sm font-bold text-foreground">Click to choose file</p>
+                                <p className="text-[10px] uppercase text-muted-foreground font-medium">PDF or Image • max 10MB</p>
                               </div>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">OR</p>
+                          <div className="flex items-center gap-3 w-full sm:max-w-md px-4">
+                            <div className="h-px flex-1 bg-border" />
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground">OR</p>
+                            <div className="h-px flex-1 bg-border" />
+                          </div>
                           <Input
                             placeholder="Enter Google Drive link or other URL"
-                            className="max-w-sm"
+                            className="w-full sm:max-w-md h-11"
                             value={regFormUrl}
                             onChange={(e) => setRegFormUrl(e.target.value)}
                           />
@@ -669,16 +678,16 @@ const RegisterTeam = () => {
               Your team has been registered. Use the Team ID below to submit your solution.
             </p>
 
-            <div className="w-full my-4 sm:my-6 p-4 sm:p-5 bg-muted rounded-xl border border-border">
-              <p className="text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2">Your Team ID</p>
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl sm:text-3xl font-heading font-bold text-primary tracking-widest">
+            <div className="w-full my-4 md:my-6 p-4 md:p-6 bg-muted rounded-xl border border-border">
+              <p className="text-xs md:text-sm text-muted-foreground mb-2 font-medium">Your Unique Team ID</p>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-2xl md:text-3xl font-heading font-black text-primary tracking-[0.2em]">
                   {successData?.teamId}
                 </span>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 shrink-0"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 border-2"
                   onClick={() => {
                     navigator.clipboard.writeText(successData?.teamId || "");
                     toast.success("Team ID copied!");
@@ -687,14 +696,14 @@ const RegisterTeam = () => {
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2 sm:mt-3 leading-relaxed">
-                A confirmation has been sent to{" "}
-                <span className="font-semibold break-all">{successData?.email}</span>
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-4 leading-relaxed font-medium">
+                Save this ID. A confirmation has been sent to:<br/>
+                <span className="text-foreground font-bold break-all">{successData?.email}</span>
               </p>
             </div>
 
-            <Button className="gradient-primary text-primary-foreground px-8 w-full" onClick={() => { setSuccessData(null); navigate("/"); }}>
-              Go to Home
+            <Button className="gradient-primary text-primary-foreground h-12 px-10 w-full font-bold uppercase tracking-wider" onClick={() => { setSuccessData(null); navigate("/"); }}>
+              Return to Website
             </Button>
           </div>
         </DialogContent>

@@ -306,7 +306,7 @@ serve(async (req) => {
       </ol>
     </div>
     <div class="footer">
-      <p>© 2026 KBT College of Engineering • Nashik<br>
+      <p>KBTCOE Engineering College, Nashik<br>
       <a href="mailto:kbtavinyathon@gmail.com" style="color: #2563eb; text-decoration: none;">kbtavinyathon@gmail.com</a></p>
     </div>
   </div>
@@ -363,7 +363,7 @@ serve(async (req) => {
   } catch (error: any) {
     console.error(`❌ Registration error: ${error.message}`);
     return new Response(
-      JSON.stringify({ error: error.message || "Registration failed. Please try again later." }),
+      JSON.stringify({ error: "Registration failed. Please check your connection and try again later." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

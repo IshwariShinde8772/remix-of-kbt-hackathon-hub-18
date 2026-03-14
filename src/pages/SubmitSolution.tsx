@@ -190,39 +190,39 @@ const SubmitSolution = () => {
             {submitted ? (
               /* Success Card - Styled like RegisterTeam success dialog / card */
               <div className="bg-background rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-500">
-                <div className="gradient-primary p-8 text-primary-foreground text-center">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 className="w-10 h-10 text-white" />
+                <div className="gradient-primary p-6 md:p-8 text-primary-foreground text-center">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8 md:w-10 md:h-10 text-white" />
                   </div>
-                  <h1 className="text-2xl font-heading font-bold uppercase tracking-tight">Solution Submitted!</h1>
-                  <p className="text-white/80 mt-1">KBT Avinyathon 2026 Confirmation</p>
+                  <h1 className="text-xl md:text-2xl font-heading font-bold uppercase tracking-tight">Solution Submitted!</h1>
+                  <p className="text-white/80 mt-1 text-sm md:text-base">KBT Avinyathon 2026 Confirmation</p>
                 </div>
-                <div className="p-8 md:p-12 text-center space-y-8">
-                  <div className="space-y-4">
-                    <h2 className="text-xl font-heading font-bold text-foreground uppercase">
+                <div className="p-6 md:p-12 text-center space-y-6 md:space-y-8">
+                  <div className="space-y-3 md:space-y-4">
+                    <h2 className="text-lg md:text-xl font-heading font-bold text-foreground uppercase">
                       Submission Successful
                     </h2>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
                       Your solution for <span className="text-primary font-bold">"{verifiedTeam?.problem_statement}"</span> has been successfully logged. 
                       A confirmation email has been sent to your team leader.
                     </p>
                   </div>
                   
-                  <div className="inline-block px-10 py-5 bg-muted rounded-xl border border-border">
-                    <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-1">TEAM ID</p>
-                    <p className="text-3xl font-mono font-bold text-primary">{submittedTeamId}</p>
+                  <div className="inline-block px-6 md:px-10 py-4 md:py-5 bg-muted rounded-xl border border-border">
+                    <p className="text-[10px] md:text-xs uppercase tracking-widest font-bold text-muted-foreground mb-1">TEAM ID</p>
+                    <p className="text-2xl md:text-3xl font-mono font-bold text-primary">{submittedTeamId}</p>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                  <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center pt-2 md:pt-4">
                     <Button 
-                      className="gradient-primary text-white h-12 px-8 rounded-xl font-bold uppercase"
+                      className="gradient-primary text-white h-12 px-8 rounded-xl font-bold uppercase w-full sm:w-auto"
                       onClick={() => navigate("/")}
                     >
                       Return Home
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="h-12 px-8 rounded-xl font-bold uppercase border-2" 
+                      className="h-12 px-8 rounded-xl font-bold uppercase border-2 w-full sm:w-auto" 
                       onClick={() => navigate("/problems")}
                     >
                       Explore Problems
@@ -308,14 +308,14 @@ const SubmitSolution = () => {
                         )}
                       </Button>
                     ) : (
-                      <div className="flex items-center justify-between p-5 bg-green-50 border border-green-100 rounded-xl animate-in slide-in-from-left-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-green-200 flex items-center justify-center">
-                            <CheckCircle2 className="w-8 h-8 text-green-500" />
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 md:p-5 bg-green-50 border border-green-100 rounded-xl animate-in slide-in-from-left-4 gap-4">
+                        <div className="flex items-center gap-3 md:gap-4">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white shadow-sm border border-green-200 flex items-center justify-center shrink-0">
+                            <CheckCircle2 className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
                           </div>
                           <div>
-                            <p className="font-heading font-bold text-green-950 uppercase leading-none mb-1">{verifiedTeam.team_name}</p>
-                            <p className="text-xs text-green-700 font-medium opacity-80 uppercase tracking-widest">
+                            <p className="font-heading font-bold text-green-950 uppercase leading-none mb-1 text-sm md:text-base">{verifiedTeam.team_name}</p>
+                            <p className="text-[10px] md:text-xs text-green-700 font-medium opacity-80 uppercase tracking-widest">
                               Identity Verified Successully
                             </p>
                           </div>
@@ -324,7 +324,7 @@ const SubmitSolution = () => {
                           variant="ghost" 
                           size="sm" 
                           onClick={() => { setVerifiedTeam(null); setHasSearched(false); }} 
-                          className="text-muted-foreground hover:text-red-500 hover:bg-red-50 font-bold uppercase text-[10px]"
+                          className="text-muted-foreground hover:text-red-500 hover:bg-red-50 font-bold uppercase text-[10px] h-8 px-3 ml-auto sm:ml-0"
                         >
                           <X className="w-4 h-4 mr-2" /> Change
                         </Button>

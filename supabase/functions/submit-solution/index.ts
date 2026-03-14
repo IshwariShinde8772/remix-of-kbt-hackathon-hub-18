@@ -219,7 +219,10 @@ serve(async (req) => {
         <p><strong>Status:</strong> Confirmed ✓</p>
       </div>
     </div>
-    <div class="footer"><p>KBT College of Engineering, Nashik</p></div>
+    <div class="footer">
+      <p>KBTCOE Engineering College, Nashik<br>
+      <a href="mailto:kbtavinyathon@gmail.com" style="color: #2563eb; text-decoration: none;">kbtavinyathon@gmail.com</a></p>
+    </div>
   </div>
 </body>
 </html>`;
@@ -262,7 +265,7 @@ serve(async (req) => {
   } catch (error: any) {
     console.error(`❌ Submission error: ${error.message}`);
     return new Response(
-      JSON.stringify({ error: error.message || "Submission failed" }),
+      JSON.stringify({ error: "Submission failed. Please check your connection and try again later." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
