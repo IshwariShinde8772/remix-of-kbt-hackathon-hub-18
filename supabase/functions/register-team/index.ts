@@ -71,17 +71,26 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 2: Check for duplicate registration
+    // STEP 2: Check for duplicate registration in both databases
     // ═══════════════════════════════════════════════════════════════
-    const { data: existing } = await lovable
+    const { data: existingLov } = await lovable
       .from(lovableTable)
       .select(idColumn)
       .eq("institute_number", data.institute_number?.trim() || "")
       .ilike("college_name", data.college_name?.trim() || "")
       .limit(1);
 
-    if (existing && existing.length > 0) {
-      const existingId = (existing[0] as any)[idColumn];
+    const { data: existingExt } = await external
+      .from(externalTable)
+      .select(idColumn)
+      .eq("institute_number", data.institute_number?.trim() || "")
+      .ilike("college_name", data.college_name?.trim() || "")
+      .limit(1);
+
+    if ((existingLov && existingLov.length > 0) || (existingExt && existingExt.length > 0)) {
+      const existingId = existingLov && existingLov.length > 0 
+        ? (existingLov[0] as any)[idColumn]
+        : (existingExt[0] as any)[idColumn];
       return new Response(
         JSON.stringify({ error: `This team is already registered with ID: ${existingId}` }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -162,7 +171,12 @@ serve(async (req) => {
       .single();
 
     if (extError) {
-      console.error(`⚠️ External database sync warning: ${extError.message}`);
+      // If it's a duplicate key error, it's not critical - team exists
+      if (extError.code === "23505") {
+        console.log(`ℹ️ Team already exists in external database (${generatedId})`);
+      } else {
+        console.error(`⚠️ External database sync warning: ${extError.message}`);
+      }
     } else {
       externalResult = extData;
       console.log(`✅ Synced to external database`);

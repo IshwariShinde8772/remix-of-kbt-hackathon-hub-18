@@ -175,7 +175,12 @@ serve(async (req) => {
         .single();
 
       if (extSubError) {
-        console.error(`⚠️ External submission sync warning: ${extSubError.message}`);
+        // If it's a duplicate key error, it's acceptable - submission exists
+        if (extSubError.code === "23505") {
+          console.log(`ℹ️ Submission already exists in external database for team ${teamId}`);
+        } else {
+          console.error(`⚠️ External submission sync warning: ${extSubError.message}`);
+        }
       } else {
         console.log(`✅ Synced submission to external database`);
       }
