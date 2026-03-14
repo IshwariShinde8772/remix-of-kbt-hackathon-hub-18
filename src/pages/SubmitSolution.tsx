@@ -34,9 +34,10 @@ const SubmitSolution = () => {
   const [teamIdInput, setTeamIdInput] = useState("");
   const [collegeName, setCollegeName] = useState("");
   const [instituteNumber, setInstituteNumber] = useState("");
-  const [verifiedTeam, setVerifiedTeam] = useState<{ team_name: string, problem_statement: string, domain: string } | null>(null);
+  const [verifiedTeam, setVerifiedTeam] = useState<{ team_name?: string, problem_statement?: string, domain?: string, registration_id?: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   // Step 2: Submit solution
   const [solutionTitle, setSolutionTitle] = useState("");
@@ -68,6 +69,7 @@ const SubmitSolution = () => {
     setIsSearching(true);
     setHasSearched(true);
     setVerifiedTeam(null);
+    setVerifyError(null);
 
     try {
       console.log("🔍 Verifying team with ID:", teamIdInput.trim());
@@ -81,20 +83,34 @@ const SubmitSolution = () => {
         }
       });
 
+      console.log("✅ API Response:", { result, invokeError });
+
       if (invokeError) {
         console.error("❌ Verification error:", invokeError);
+        setVerifyError(invokeError.message || "Verification failed");
         throw new Error(invokeError.message || "Verification failed");
       }
 
-      if (!result || result.error) {
-        throw new Error(result?.error || "Invalid Team ID, College Name, or Institute Number.");
+      if (!result) {
+        console.error("❌ Empty result from API");
+        setVerifyError("No response from server");
+        throw new Error("No response from server");
       }
 
+      if (result.error) {
+        console.error("❌ API returned error:", result.error);
+        setVerifyError(result.error);
+        throw new Error(result.error);
+      }
+
+      console.log("✅ Team verified successfully:", result);
       setVerifiedTeam(result);
       toast.success("Team verified successfully!");
     } catch (error: any) {
-      console.error("❌ Search error:", error);
-      toast.error(error.message || "Team not found. Please check your details.");
+      console.error("❌ Verification error:", error);
+      const errorMsg = error.message || "Team not found. Please check your details.";
+      setVerifyError(errorMsg);
+      toast.error(errorMsg);
       scrollToTop();
     } finally {
       setIsSearching(false);
@@ -269,7 +285,7 @@ const SubmitSolution = () => {
                         <Search className="w-4 h-4 mr-2" />
                         {isSearching ? "Verifying..." : "Verify Team"}
                       </Button>
-                    ) : (
+                    ) : verifiedTeam.team_name ? (
                       <div className="flex items-center justify-between p-3 bg-green-50 border border-green-100 rounded-lg">
                         <div className="flex items-center gap-3">
                           <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -278,16 +294,23 @@ const SubmitSolution = () => {
                             <p className="text-xs text-green-700">Verified successfully</p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => { setVerifiedTeam(null); setHasSearched(false); }} className="text-muted-foreground h-8">
+                        <Button variant="ghost" size="sm" onClick={() => { setVerifiedTeam(null); setHasSearched(false); setVerifyError(null); }} className="text-muted-foreground h-8">
                           <X className="w-4 h-4 mr-1" /> Edit
                         </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive text-sm">
+                        <AlertCircle className="w-5 h-5" />
+                        <p>Error: Invalid response from server. Please try again.</p>
                       </div>
                     )}
 
                     {hasSearched && !verifiedTeam && !isSearching && (
                       <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive text-sm">
                         <AlertCircle className="w-5 h-5" />
-                        Verification failed. Please check your details or contact organizers.
+                        <div>
+                          <p>{verifyError || "Verification failed. Please check your details or contact organizers."}</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -303,8 +326,8 @@ const SubmitSolution = () => {
                       <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                         <div>
                           <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Allocated Problem Statement</p>
-                          <p className="text-base font-bold text-foreground leading-tight mt-1">{verifiedTeam.problem_statement}</p>
-                          <p className="text-xs text-muted-foreground mt-2">Domain: {verifiedTeam.domain}</p>
+                          <p className="text-base font-bold text-foreground leading-tight mt-1">{verifiedTeam?.problem_statement || "Problem Statement"}</p>
+                          <p className="text-xs text-muted-foreground mt-2">Domain: {verifiedTeam?.domain || "Unknown"}</p>
                         </div>
                       </div>
 
