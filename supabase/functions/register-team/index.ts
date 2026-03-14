@@ -292,6 +292,7 @@ serve(async (req) => {
       <div class="details">
         <strong>Registration Summary:</strong><br>
         Team: ${data.team_name}<br>
+        Institute ID: ${data.institute_number || "N/A"}<br>
         College: ${data.college_name}<br>
         Domain: ${data.selected_domain || "Software"}<br>
         Leader Email: ${data.leader_email}<br>
