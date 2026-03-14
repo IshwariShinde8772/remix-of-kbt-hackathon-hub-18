@@ -18,16 +18,13 @@ serve(async (req) => {
   const contentType = req.headers.get("content-type") || "";
 
   try {
-    // Get API key from environment
-    const externalKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-    if (!externalKey) {
-      throw new Error("Missing Supabase credentials");
+    if (!supabaseKey) {
+      throw new Error("Missing Supabase configuration");
     }
 
-    // Initialize database client
-    const db = createClient(DB_EXTERNAL, externalKey);
-
+    const db = createClient(DB_EXTERNAL, supabaseKey);
     const regTable = "team_registrations";
     const subTable = "team_solutions";
     const teamIdCol = "team_id";
@@ -58,10 +55,10 @@ serve(async (req) => {
 
         console.log(`🔍 Validating team: ${team_id}`);
         
-        // Check in database and fetch problem statement details and registration_id
+        // Fetch details from team_registrations. Use 'id' as 'registration_id'
         const { data: team, error: findError } = await db
           .from(regTable)
-          .select(`${teamIdCol}, team_name, leader_email, problem_statement_title, domain, registration_id`)
+          .select(`${teamIdCol}, id, team_name, leader_name, college_name, leader_email, problem_statement_title, problem_description, domain`)
           .eq(teamIdCol, team_id.trim())
           .ilike("college_name", `%${college_name?.trim() || ""}%`)
           .eq("institute_number", institute_number?.trim() || "")
@@ -80,9 +77,12 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             team_name: team.team_name,
+            leader_name: team.leader_name || "Leader",
+            college_name: team.college_name || "College",
             problem_statement: team.problem_statement_title || "Problem Statement",
+            problem_description: team.problem_description || "",
             domain: team.domain || "Unknown Domain",
-            registration_id: team.registration_id
+            registration_id: team.id // Note: using 'id' as the unique registration reference
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -118,31 +118,23 @@ serve(async (req) => {
         );
       }
 
-      // ───────────────────────────────────────────────────────────────
-      // Step 1: Verify team exists and get their details
-      // ───────────────────────────────────────────────────────────────
-      console.log(`📍 Verifying team for solution submission: ${teamId}`);
+      // Step 1: Verify team exists and get their primary 'id'
       const { data: teamData, error: teamError } = await db
         .from(regTable)
-        .select(`${teamIdCol}, team_name, leader_email, registration_id`)
+        .select(`id, team_name, leader_email`)
         .eq(teamIdCol, teamId)
         .ilike("college_name", `%${collegeName || ""}%`)
         .eq("institute_number", instituteNumber || "")
         .single();
 
       if (teamError || !teamData) {
-        console.error(`❌ Team verification failed: ${teamError?.message || "Not found"}`);
         return new Response(
           JSON.stringify({ error: "Team verification failed. Invalid credentials." }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      console.log(`✅ Team verified: ${teamData.team_name}`);
-
-      // ───────────────────────────────────────────────────────────────
       // Step 2: Upload PDF to storage
-      // ───────────────────────────────────────────────────────────────
       const fileName = `${teamId}-${Date.now()}.pdf`;
       const fileBuffer = await pdfFile.arrayBuffer();
 
@@ -154,14 +146,10 @@ serve(async (req) => {
         throw new Error(`File upload failed: ${uploadError.message}`);
       }
 
-      console.log(`✅ PDF uploaded: ${fileName}`);
-
-      // ───────────────────────────────────────────────────────────────
       // Step 3: Create submission record
-      // ───────────────────────────────────────────────────────────────
       const submissionData = {
         team_id: teamId,
-        registration_id: teamData.registration_id,
+        registration_id: teamData.id, // Linking via the primary id
         solution_title: solutionTitle,
         solution_description: solutionDescription,
         video_link: youtubeLink,
@@ -169,11 +157,6 @@ serve(async (req) => {
         status: "submitted",
       };
 
-      // Insert to database
-      console.log(`📝 Inserting solution to team_solutions table`);
-      console.log(`📦 Registration ID: ${teamData.registration_id}`);
-      console.log(`📦 Solution Title: ${solutionTitle}`);
-      
       const { data: subData, error: subError } = await db
         .from(subTable)
         .insert([submissionData])
@@ -181,23 +164,14 @@ serve(async (req) => {
         .single();
 
       if (subError) {
-        console.error(`❌ Submission insert error: ${subError.message}`);
-        console.error(`❌ Error code: ${subError.code}`);
-        console.error(`❌ Error hint: ${subError.hint}`);
-        console.error(`❌ Full error: ${JSON.stringify(subError)}`);
-        throw new Error(`Submission insert failed: ${subError.message}`);
+        throw new Error(`Submission record failed: ${subError.message}`);
       }
 
-      console.log(`✅ Submission recorded with ID: ${subData.id}`);
-
-      // ───────────────────────────────────────────────────────────────
       // Step 4: Log activity
-      // ───────────────────────────────────────────────────────────────
-      const logEntry = {
+      await db.from("activity_logs").insert({
         timestamp: new Date().toISOString(),
         action: "solution_submission",
         team_id: teamId,
-        registration_id: teamData.registration_id,
         user_email: teamData.leader_email,
         details: {
           team_name: teamData.team_name,
@@ -206,120 +180,41 @@ serve(async (req) => {
           video_link: youtubeLink,
         },
         status: "success",
-      };
+      });
 
-      // Log activity
-      const { error: logError } = await db
-        .from("activity_logs")
-        .insert(logEntry);
-      
-      if (logError) {
-        console.error(`⚠️ Log error: ${logError.message}`);
-      }
-
-      console.log(`✅ Logged submission for team ${teamId}`);
-
-      // ───────────────────────────────────────────────────────────────
-      // Step 5: Send confirmation email (non-blocking)
-      // ───────────────────────────────────────────────────────────────
+      // Step 5: Send confirmation email
       const sendSubmissionEmail = async () => {
-        console.log("📧 Starting submission email send process...");
         const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
         const gmailUser = "kbtavinyathon@gmail.com";
 
-        if (!gmailAppPassword) {
-          console.error("⚠️ GMAIL_APP_PASSWORD not set - skipping email");
-          return;
-        }
+        if (!gmailAppPassword) return;
 
         try {
           const emailHtml = `<!DOCTYPE html>
 <html>
 <head><style>
   body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
-  .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-  .header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 30px; text-align: center; color: white; }
-  .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-  .header p { margin: 5px 0 0 0; font-size: 13px; opacity: 0.9; }
+  .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+  .header { background: #1e293b; padding: 30px; text-align: center; color: white; }
   .content { padding: 35px; }
-  .greeting { font-size: 16px; font-weight: 600; color: #1e293b; margin-bottom: 15px; }
-  .message { font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 20px; }
   .detail-box { background: #f1f5f9; border-left: 4px solid #2563eb; padding: 16px; border-radius: 6px; margin: 18px 0; }
-  .detail-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 13px; }
-  .detail-label { color: #64748b; font-weight: 600; }
-  .detail-value { color: #1e293b; font-weight: 500; }
-  .success-banner { background: #dcfce7; border: 1px solid #86efac; padding: 12px; border-radius: 6px; text-align: center; margin: 18px 0; }
-  .success-banner p { margin: 0; font-size: 14px; color: #166534; font-weight: 600; }
-  .next-steps { margin-top: 25px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
-  .next-steps h3 { font-size: 14px; font-weight: 600; color: #1e293b; margin: 0 0 12px 0; }
-  .next-steps ul { margin: 0; padding-left: 20px; font-size: 13px; color: #475569; line-height: 1.8; }
-  .footer { background: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0; }
-  .footer p { margin: 5px 0; font-size: 12px; color: #64748b; }
-  .footer-link { color: #2563eb; text-decoration: none; font-weight: 500; }
+  .footer { background: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
 </style></head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>✅ Solution Submitted Successfully!</h1>
-      <p>KBT Avinyathon 2026 • KBTCOE Nashik</p>
+      <h1>✅ Solution Submitted</h1>
+      <p>KBT Avinyathon 2026</p>
     </div>
-    
     <div class="content">
-      <div class="greeting">Hello ${teamData.team_name},</div>
-      
-      <div class="message">
-        Thank you for submitting your innovative solution to KBT Avinyathon 2026! We're thrilled to receive your contribution and appreciate your hard work and dedication.
-      </div>
-      
-      <div class="success-banner">
-        <p>🎯 Your submission has been recorded and is now under evaluation</p>
-      </div>
-      
+      <p>Hello <strong>${teamData.team_name}</strong>,</p>
+      <p>Your solution for <strong>"${solutionTitle}"</strong> has been successfully submitted!</p>
       <div class="detail-box">
-        <div class="detail-row">
-          <span class="detail-label">Team ID:</span>
-          <span class="detail-value">${teamId}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Team Name:</span>
-          <span class="detail-value">${teamData.team_name}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Submission Status:</span>
-          <span class="detail-value" style="color: #16a34a; font-weight: 700;">✓ Confirmed</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">PDF Submission:</span>
-          <span class="detail-value">${fileName}</span>
-        </div>
-      </div>
-      
-      <div class="next-steps">
-        <h3>📋 What Happens Next?</h3>
-        <ul>
-          <li><strong>Evaluation:</strong> Our expert judges will review your solution during the next 5-7 days</li>
-          <li><strong>Feedback:</strong> You'll receive detailed feedback on your submission via email</li>
-          <li><strong>Shortlisting:</strong> Selected teams will be invited to the final presentation round</li>
-          <li><strong>Next Steps:</strong> Final round details will be shared with shortlisted teams</li>
-        </ul>
-      </div>
-      
-      <div class="message" style="margin-top: 20px; font-size: 13px;">
-        If you have any questions or need to update your submission, please reach out to our support team. We're here to help!
+        <p><strong>Team ID:</strong> ${teamId}</p>
+        <p><strong>Status:</strong> Confirmed ✓</p>
       </div>
     </div>
-    
-    <div class="footer">
-      <p><strong>KBT Avinyathon 2026</strong></p>
-      <p>KBTCOE Engineering College, Nashik</p>
-      <p>
-        <a href="mailto:kbtavinyathon@gmail.com" class="footer-link">kbtavinyathon@gmail.com</a> 
-        | 📱 Contact: +91-XXXXXXXXXX
-      </p>
-      <p style="margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; color: #94a3b8; font-size: 11px;">
-        © 2026 KBT Avinyathon. All rights reserved. | <a href="#" class="footer-link">Privacy Policy</a>
-      </p>
-    </div>
+    <div class="footer"><p>KBT College of Engineering, Nashik</p></div>
   </div>
 </body>
 </html>`;
@@ -334,34 +229,16 @@ serve(async (req) => {
           await transporter.sendMail({
             from: `"KBT Avinyathon 2026" <${gmailUser}>`,
             to: teamData.leader_email,
-            cc: ["kbtavinyathon@gmail.com"],
-            subject: `✅ Solution Submitted Successfully – Team ID: ${teamId}`,
+            subject: `✅ Solution Submitted - Team ID: ${teamId}`,
             html: emailHtml,
           });
-
-          console.log(`✅ Submission email sent to ${teamData.leader_email}`);
-        } catch (emailError: any) {
-          console.error(`❌ Email send failed | Error: ${emailError.message} | Code: ${emailError.code || 'unknown'}`);
-          console.error(`Email error details: ${JSON.stringify(emailError)}`);
-          throw emailError;
+        } catch (emailError) {
+          console.error("Email error:", emailError);
         }
       };
 
-      // Send email with timeout (don't block too long)
-      try {
-        // Try to send email with 5 second timeout
-        await Promise.race([
-          sendSubmissionEmail(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Email timeout")), 5000))
-        ]);
-      } catch (emailTimeoutError: any) {
-        // Log but don't fail submission if email times out
-        console.warn(`⚠️ Email send timeout or error: ${emailTimeoutError.message}`);
-      }
+      sendSubmissionEmail();
 
-      // ───────────────────────────────────────────────────────────────
-      // Step 6: Return success response
-      // ───────────────────────────────────────────────────────────────
       return new Response(
         JSON.stringify({
           success: true,
@@ -380,7 +257,7 @@ serve(async (req) => {
   } catch (error: any) {
     console.error(`❌ Submission error: ${error.message}`);
     return new Response(
-      JSON.stringify({ error: error.message || "Submission failed. Please try again later." }),
+      JSON.stringify({ error: error.message || "Submission failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

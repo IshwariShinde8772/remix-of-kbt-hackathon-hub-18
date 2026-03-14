@@ -42,7 +42,7 @@ serve(async (req) => {
     // STEP 1: Handle file upload (if provided)
     // ═══════════════════════════════════════════════════════════════
     let finalRegFormUrl = data.registration_form_url || null;
-    
+
     if (reg_file_data && reg_file_name) {
       try {
         const decodedFileData = decode(reg_file_data);
@@ -92,7 +92,7 @@ serve(async (req) => {
     // STEP 3: Generate team ID (find highest existing ID and increment)
     // ═══════════════════════════════════════════════════════════════
     let generatedId = `KBT-0001`;
-    
+
     // Query for highest existing team_id
     const { data: existingIds, error: idError } = await db
       .from(table)
@@ -120,7 +120,7 @@ serve(async (req) => {
     // STEP 4: Prepare registration data (matching actual table schema)
     // ═══════════════════════════════════════════════════════════════
     const membersArray = data.members || [];
-    
+
     // Build members JSON for the members JSONB column
     const membersJson = membersArray.map((member: any) => ({
       name: member.name,
@@ -192,7 +192,7 @@ serve(async (req) => {
           continue;
         }
       }
-      
+
       // Other error - don't retry, throw immediately
       console.error(`❌ Insert failed (attempt ${insertAttempt}): ${err.message}`);
       console.error(`❌ Error code: ${err.code}`);
@@ -225,7 +225,7 @@ serve(async (req) => {
     const { error: logError } = await db
       .from("activity_logs")
       .insert(logEntry);
-    
+
     if (logError) {
       console.error(`⚠️ Log error: ${logError.message}`);
     }
