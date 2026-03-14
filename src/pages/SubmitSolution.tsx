@@ -181,236 +181,226 @@ const SubmitSolution = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen bg-muted/30">
       <Header />
       <Navbar />
-      <main className="py-12">
+      <main className="py-8">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-
-            {/* Success State */}
+            
             {submitted ? (
-              <div className="bg-background rounded-2xl shadow-xl overflow-hidden border border-border animate-in fade-in zoom-in duration-500">
-                <div className="bg-[#1e3a8a] p-10 text-white text-center">
-                  <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30">
-                    <CheckCircle2 className="w-10 h-10 text-green-400" />
+              /* Success Card - Styled like RegisterTeam success dialog / card */
+              <div className="bg-background rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-500">
+                <div className="gradient-primary p-8 text-primary-foreground text-center">
+                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-10 h-10 text-white" />
                   </div>
-                  <h1 className="text-3xl font-black tracking-tight uppercase">Solution Submitted!</h1>
-                  <p className="text-blue-100/70 mt-3 text-lg font-medium">KBT Avinyathon 2026 Submission Confirmed</p>
+                  <h1 className="text-2xl font-heading font-bold uppercase tracking-tight">Solution Submitted!</h1>
+                  <p className="text-white/80 mt-1">KBT Avinyathon 2026 Confirmation</p>
                 </div>
-                <div className="p-12 text-center space-y-10">
+                <div className="p-8 md:p-12 text-center space-y-8">
                   <div className="space-y-4">
-                    <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">
-                      Successfully Received
+                    <h2 className="text-xl font-heading font-bold text-foreground uppercase">
+                      Submission Successful
                     </h2>
-                    <p className="text-muted-foreground text-lg leading-relaxed max-w-lg mx-auto">
-                      Your solution for <span className="text-primary font-black uppercase">"{verifiedTeam?.problem_statement}"</span> has been received and logged.
+                    <p className="text-muted-foreground leading-relaxed">
+                      Your solution for <span className="text-primary font-bold">"{verifiedTeam?.problem_statement}"</span> has been successfully logged. 
+                      A confirmation email has been sent to your team leader.
                     </p>
                   </div>
                   
-                  <div className="inline-block px-10 py-6 bg-muted/40 rounded-3xl border-2 border-border/50">
-                    <p className="text-xs uppercase tracking-[0.3em] font-black text-muted-foreground mb-2">Team ID</p>
-                    <p className="text-4xl font-black font-mono text-primary tracking-wider">{submittedTeamId}</p>
+                  <div className="inline-block px-10 py-5 bg-muted rounded-xl border border-border">
+                    <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-1">TEAM ID</p>
+                    <p className="text-3xl font-mono font-bold text-primary">{submittedTeamId}</p>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
                     <Button 
-                      className="bg-[#1e3a8a] hover:bg-[#1a3174] text-white h-14 px-10 rounded-2xl font-black uppercase tracking-wider"
+                      className="gradient-primary text-white h-12 px-8 rounded-xl font-bold uppercase"
                       onClick={() => navigate("/")}
                     >
                       Return Home
                     </Button>
-                    <Button variant="outline" className="h-14 px-10 rounded-2xl font-black uppercase tracking-wider border-2" onClick={() => navigate("/problems")}>
-                      Explore More
-                      <ArrowRight className="w-5 h-5 ml-2" />
+                    <Button 
+                      variant="outline" 
+                      className="h-12 px-8 rounded-xl font-bold uppercase border-2" 
+                      onClick={() => navigate("/problems")}
+                    >
+                      Explore Problems
+                      <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
                 </div>
               </div>
             ) : (
-              /* Form Page */
-              <div className="bg-background rounded-3xl shadow-2xl overflow-hidden border border-border">
-                <div className="bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] p-12 text-white items-center flex justify-between">
-                  <div>
-                    <h1 className="text-4xl font-black tracking-tighter uppercase mb-2">Submit Solution</h1>
-                    <p className="text-blue-100/80 text-lg font-medium tracking-tight italic">Bring your innovation to global reality</p>
-                  </div>
-                  <div className="hidden md:block w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center border border-white/20 backdrop-blur-sm">
-                    <Send className="w-10 h-10 text-white/50" />
+              /* Main Form Card */
+              <div className="bg-background rounded-2xl shadow-xl overflow-hidden">
+                {/* Header - Identical to RegisterTeam */}
+                <div className="gradient-primary p-6 text-primary-foreground">
+                  <div className="flex items-center gap-3">
+                    <Send className="w-8 h-8" />
+                    <div>
+                      <p className="text-sm opacity-80">Solution Submission Portal</p>
+                      <h2 className="text-xl font-heading font-bold uppercase">Submit Your Solution</h2>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-10 md:p-14 space-y-12">
-                  {/* Step 1: Verification Flow */}
-                  <div className="space-y-8">
-                    <div className="flex items-center gap-5">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-2xl shadow-sm border border-indigo-100">1</div>
-                      <h3 className="text-2xl font-black tracking-tight uppercase">Verify Identity</h3>
+                <div className="p-6 md:p-8 space-y-10">
+                  {/* Step 1 Section: Verification */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 text-primary">
+                      <Shield className="w-6 h-6" />
+                      <h3 className="text-lg font-heading font-bold uppercase tracking-tight">Step 1: Verify Identity</h3>
                     </div>
-                    
-                    <div className="grid md:grid-cols-3 gap-6 pt-2">
-                      <div className="space-y-3">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground ml-1">Team ID</Label>
-                        <Input
-                          placeholder="KBT-XXXX"
-                          className="h-14 font-mono text-lg uppercase bg-muted/30 border-2 focus:border-indigo-400 focus:bg-white transition-all rounded-2xl px-6"
-                          value={teamIdInput}
-                          onChange={(e) => setTeamIdInput(e.target.value.toUpperCase())}
-                          disabled={!!verifiedTeam}
-                        />
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Team ID *</Label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="KBT-XXXX"
+                            className="pl-10 h-11 font-mono uppercase"
+                            value={teamIdInput}
+                            onChange={(e) => setTeamIdInput(e.target.value.toUpperCase())}
+                            disabled={!!verifiedTeam}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-3">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground ml-1">College Name</Label>
-                        <Input
-                          placeholder="College Name"
-                          className="h-14 bg-muted/30 border-2 focus:border-indigo-400 focus:bg-white transition-all rounded-2xl px-6 font-bold"
-                          value={collegeName}
-                          onChange={(e) => setCollegeName(e.target.value)}
-                          disabled={!!verifiedTeam}
-                        />
+                      <div className="space-y-2">
+                        <Label>College Name *</Label>
+                        <div className="relative">
+                          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Full College Name"
+                            className="pl-10 h-11"
+                            value={collegeName}
+                            onChange={(e) => setCollegeName(e.target.value)}
+                            disabled={!!verifiedTeam}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-3">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground ml-1">Institute ID</Label>
-                        <Input
-                          placeholder="ID Number"
-                          className="h-14 bg-muted/30 border-2 focus:border-indigo-400 focus:bg-white transition-all rounded-2xl px-6 font-bold"
-                          value={instituteNumber}
-                          onChange={(e) => setInstituteNumber(e.target.value)}
-                          disabled={!!verifiedTeam}
-                        />
+                      <div className="space-y-2">
+                        <Label>Institute ID *</Label>
+                        <div className="relative">
+                          <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Number Only"
+                            className="pl-10 h-11"
+                            value={instituteNumber}
+                            onChange={(e) => setInstituteNumber(e.target.value)}
+                            disabled={!!verifiedTeam}
+                          />
+                        </div>
                       </div>
                     </div>
-                    
+
                     {!verifiedTeam ? (
                       <Button 
                         onClick={verifyTeam} 
                         disabled={isSearching} 
-                        className="bg-[#1e3a8a] hover:bg-[#1a3174] text-white h-14 px-12 rounded-2xl font-black uppercase tracking-widest shadow-xl transition-all active:scale-[0.98] w-full md:w-auto"
+                        className="gradient-primary text-white h-12 px-10 rounded-xl font-bold uppercase tracking-wider"
                       >
                         {isSearching ? (
-                          <><span className="w-5 h-5 border-4 border-white/20 border-t-white rounded-full animate-spin mr-3" /> Verifying...</>
+                          <><span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-3" /> Verifying...</>
                         ) : (
-                          <><Search className="w-5 h-5 mr-3" /> Verify Team Details</>
+                          <><Search className="w-5 h-5 mr-3" /> Verify Details</>
                         )}
                       </Button>
                     ) : (
-                      <div className="flex items-center justify-between p-7 bg-green-50/50 border-2 border-green-200 rounded-3xl animate-in fade-in slide-in-from-left-6">
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-green-200 flex items-center justify-center flex-shrink-0">
-                            <CheckCircle2 className="w-9 h-9 text-green-500" />
+                      <div className="flex items-center justify-between p-5 bg-green-50 border border-green-100 rounded-xl animate-in slide-in-from-left-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-green-200 flex items-center justify-center">
+                            <CheckCircle2 className="w-8 h-8 text-green-500" />
                           </div>
                           <div>
-                            <p className="text-xl font-black text-green-950 uppercase tracking-tighter leading-none mb-1.5">{verifiedTeam.team_name}</p>
-                            <p className="text-xs text-green-700 font-bold opacity-80 uppercase tracking-widest">
-                              Verified Successfully
+                            <p className="font-heading font-bold text-green-950 uppercase leading-none mb-1">{verifiedTeam.team_name}</p>
+                            <p className="text-xs text-green-700 font-medium opacity-80 uppercase tracking-widest">
+                              Identity Verified Successully
                             </p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => { setVerifiedTeam(null); setHasSearched(false); }} className="text-muted-foreground hover:text-red-500 hover:bg-red-50 h-10 px-6 rounded-xl font-black uppercase tracking-widest text-[10px]">
-                          <X className="w-4 h-4 mr-2" /> Edit
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => { setVerifiedTeam(null); setHasSearched(false); }} 
+                          className="text-muted-foreground hover:text-red-500 hover:bg-red-50 font-bold uppercase text-[10px]"
+                        >
+                          <X className="w-4 h-4 mr-2" /> Change
                         </Button>
-                      </div>
-                    )}
-
-                    {hasSearched && !verifiedTeam && !isSearching && (
-                      <div className="flex items-center gap-5 p-7 bg-red-50/70 border-2 border-red-200 rounded-3xl text-red-700 animate-in shake-200">
-                        <AlertCircle className="w-7 h-7" />
-                        <p className="font-black uppercase tracking-tight text-sm">Team Identity verification failed. Check credentials.</p>
                       </div>
                     )}
                   </div>
 
-                  {/* Step 2: Submission Materials */}
+                  {/* Step 2 Section: Submission */}
                   {verifiedTeam && (
-                    <div className="space-y-12 animate-in fade-in slide-in-from-top-10 duration-1000 pt-4">
-                      
-                      <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600 font-black text-2xl shadow-sm border border-violet-100">
-                          <Upload className="w-6 h-6" />
-                        </div>
-                        <div className="flex flex-col">
-                          <h3 className="text-[11px] text-violet-600 font-black uppercase tracking-[0.25em] mb-0.5">Ready for Submission</h3>
-                          <h3 className="text-2xl font-black tracking-tight uppercase">Step 2: Submit Your Solution</h3>
+                    <div className="space-y-8 animate-in fade-in slide-in-from-top-6 pt-6 border-t border-border">
+                      <div className="flex items-center gap-3 text-primary">
+                        <Upload className="w-6 h-6" />
+                        <h3 className="text-lg font-heading font-bold uppercase tracking-tight">Step 2: Solution Materials</h3>
+                      </div>
+
+                      {/* Problem Info Card - Styled similar to Problem Selection details in RegisterTeam */}
+                      <div className="bg-muted/50 border border-border rounded-xl p-6 md:p-8 space-y-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-[10px] text-primary font-bold uppercase tracking-widest mb-1.5 leading-none">ALLOCATED PROBLEM STATEMENT</p>
+                            <h4 className="text-xl font-heading font-bold text-foreground leading-tight uppercase">{verifiedTeam.problem_statement}</h4>
+                            <div className="mt-2">
+                              <span className="inline-block px-3 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold uppercase">
+                                {verifiedTeam.domain}
+                              </span>
+                            </div>
+                          </div>
+
+                          {verifiedTeam.problem_description && (
+                            <div className="bg-white/60 rounded-lg p-4 border border-border text-sm italic text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                              {verifiedTeam.problem_description}
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="grid gap-10">
-                        {/* Problem Details Display - Matching Screenshot */}
-                        <div className="bg-muted/50 border-2 border-muted rounded-3xl p-10 space-y-8 relative overflow-hidden group">
-                          <div className="space-y-6 relative z-10">
-                            <div>
-                              <p className="text-[11px] text-muted-foreground font-black uppercase tracking-[0.25em] mb-2 leading-none">ALLOCATED PROBLEM STATEMENT</p>
-                              <h4 className="text-2xl font-black text-foreground leading-tight tracking-tight">{verifiedTeam.problem_statement}</h4>
-                              <p className="text-sm font-bold text-muted-foreground mt-2 italic flex items-center gap-2">
-                                Domain: <span className="text-foreground not-italic">{verifiedTeam.domain}</span>
-                              </p>
-                            </div>
-
-                            {/* Optional: Add problem description if available */}
-                            {verifiedTeam.problem_description && (
-                              <div className="bg-white/80 rounded-2xl p-6 border border-border shadow-sm">
-                                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-3 leading-none opacity-60">Problem Requirements</p>
-                                <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap italic">
-                                  {verifiedTeam.problem_description}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
+                      <div className="grid gap-6">
                         {/* Company Name */}
-                        <div className="space-y-4">
-                          <Label className="text-sm font-black text-foreground flex items-center gap-2">
-                            Company / Organization Name *
-                          </Label>
-                          <Input
-                            placeholder="Enter Name"
-                            className="h-16 bg-white border-2 border-muted focus:border-violet-500/40 transition-all rounded-2xl px-8 text-lg"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                          />
-                          <p className="text-[11px] text-muted-foreground font-medium ml-2 opacity-80">
-                            The company or organization you are working with on this solution.
-                          </p>
+                        <div className="space-y-2">
+                          <Label>Company / Organization Name *</Label>
+                          <div className="relative">
+                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              placeholder="e.g. Google, TCS, or N/A"
+                              className="pl-10 h-11"
+                              value={companyName}
+                              onChange={(e) => setCompanyName(e.target.value)}
+                            />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground italic ml-1">The company you specifically chose for this problem statement.</p>
                         </div>
 
                         {/* YouTube URL */}
-                        <div className="space-y-4">
-                          <Label className="flex items-center gap-3 text-sm font-black text-foreground">
-                            <span className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center border border-red-100">
-                             <Youtube className="w-4 h-4 text-red-500" />
-                            </span>
-                            YouTube Demo Video Link *
-                          </Label>
-                          <Input
-                            placeholder="https://youtu.be/..."
-                            className="h-16 bg-white border-2 border-muted focus:border-red-500/30 transition-all rounded-2xl px-8 text-lg"
-                            value={youtubeLink}
-                            onChange={(e) => setYoutubeLink(e.target.value)}
-                          />
-                          <p className="text-[11px] text-muted-foreground font-medium ml-2 opacity-80">
-                            A short video (1-2 minutes) explaining your solution — mandatory.
-                          </p>
-                          {youtubeLink && !validateYoutubeLink(youtubeLink) && (
-                            <p className="text-red-500 text-xs font-black flex items-center gap-2 px-2 mt-1">
-                              <X className="w-4 h-4" /> Invalid YouTube link format
-                            </p>
-                          )}
+                        <div className="space-y-2">
+                          <Label>YouTube Demo Video Link *</Label>
+                          <div className="relative">
+                            <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              placeholder="https://youtu.be/..."
+                              className="pl-10 h-11"
+                              value={youtubeLink}
+                              onChange={(e) => setYoutubeLink(e.target.value)}
+                            />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground italic ml-1">Mandatory technical walkthrough (1-2 minutes).</p>
                         </div>
 
-                        {/* File Upload */}
-                        <div className="space-y-4">
-                          <Label className="flex items-center gap-3 text-sm font-black text-foreground">
-                            <span className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center border border-violet-100">
-                              <FileText className="w-4 h-4 text-violet-500" />
-                            </span>
-                            Solution PDF *
-                          </Label>
+                        {/* File Upload - Matching styling from RegisterTeam Step 4 */}
+                        <div className="space-y-2">
+                          <Label>Technical Proposal / Solution PDF *</Label>
                           <div
-                            className={`border-3 border-dashed rounded-3xl p-12 text-center cursor-pointer transition-all duration-300 ${
+                            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
                               solutionFile 
-                                ? 'bg-indigo-50/20 border-violet-400/40 ring-8 ring-indigo-500/5' 
-                                : 'bg-muted/10 border-muted focus-within:border-violet-400 group hover:border-violet-400/40 hover:bg-violet-50/30'
+                                ? 'bg-primary/5 border-primary/40' 
+                                : 'bg-muted/10 border-border hover:border-primary/40 hover:bg-muted/30'
                             }`}
                             onClick={() => document.getElementById("solution-pdf-input")?.click()}
                           >
@@ -418,66 +408,60 @@ const SubmitSolution = () => {
                               id="solution-pdf-input"
                               type="file"
                               accept=".pdf"
-                              onChange={handleFileChange}
                               className="hidden"
+                              onChange={handleFileChange}
                             />
                             {solutionFile ? (
-                              <div className="space-y-5 animate-in zoom-in-95 duration-500">
-                                <div className="w-24 h-24 bg-white rounded-3xl mx-auto flex items-center justify-center shadow-xl border border-violet-100">
-                                  <FileText className="w-12 h-12 text-violet-500" />
+                              <div className="space-y-3">
+                                <div className="w-12 h-12 bg-white rounded-lg mx-auto flex items-center justify-center shadow-sm border border-border">
+                                  <FileText className="w-7 h-7 text-primary" />
                                 </div>
-                                <div>
-                                  <p className="text-foreground font-black text-xl tracking-tight leading-none mb-2">{solutionFile.name}</p>
-                                  <p className="text-violet-600 text-[10px] font-black uppercase tracking-[0.3em]">✓ Ready for Transmission</p>
-                                </div>
+                                <p className="text-foreground font-bold text-sm">{solutionFile.name}</p>
+                                <p className="text-green-600 text-[10px] font-bold uppercase tracking-widest">READY ({(solutionFile.size / 1024 / 1024).toFixed(2)} MB)</p>
                                 <Button
-                                  type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="text-red-500 hover:text-red-600 hover:bg-red-50 h-10 px-8 rounded-2xl font-black uppercase tracking-widest text-[9px]"
+                                  className="text-red-500 hover:text-red-600 h-8 px-4 font-bold text-[10px] uppercase"
                                   onClick={(e) => { e.stopPropagation(); setSolutionFile(null); }}
                                 >
-                                  Reset file selection
+                                  Remove selection
                                 </Button>
                               </div>
                             ) : (
-                              <div className="space-y-5 py-4">
-                                <div className="w-24 h-24 bg-white shadow-inner rounded-3xl mx-auto flex items-center justify-center border-2 border-white group-hover:scale-110 transition-transform duration-500 overflow-hidden relative">
-                                   <div className="absolute inset-0 bg-violet-50 opacity-50" />
-                                   <FileText className="w-12 h-12 text-violet-300 relative z-10" />
-                                </div>
-                                <div className="space-y-2">
-                                  <p className="text-foreground font-black text-xl tracking-tight">Technical Research & Solution PDF</p>
-                                  <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.25em]">DOCUMENTS ONLY • MAX 50MB</p>
+                              <div className="space-y-3">
+                                <Upload className="w-10 h-10 text-muted-foreground mx-auto" />
+                                <div className="space-y-1">
+                                  <p className="text-foreground font-bold italic">Click here to upload research PDF</p>
+                                  <p className="text-[10px] text-muted-foreground uppercase font-medium">MAX 50MB • PDF ONLY</p>
                                 </div>
                               </div>
                             )}
                           </div>
                         </div>
 
-                        {/* Technical Approach */}
-                        <div className="space-y-4 pt-4">
-                          <Label className="text-sm font-black text-foreground ml-1 uppercase tracking-widest leading-none">Brief Technical Description</Label>
+                        {/* Technical Description */}
+                        <div className="space-y-2">
+                          <Label>Brief Technical Summary *</Label>
                           <Textarea
-                            placeholder="Explain your approach, libraries used, and how it solves the problem..."
-                            className="min-h-[160px] resize-none bg-white border-2 border-muted focus:border-violet-500/40 transition-all rounded-3xl p-8 text-lg font-medium leading-relaxed shadow-sm"
+                            placeholder="Explain your approach, core algorithm, and technology stack..."
+                            className="min-h-[120px] bg-white border border-border focus:border-primary transition-all rounded-xl p-4 text-sm leading-relaxed"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                           />
                         </div>
 
                         <Button
-                          className="w-full bg-[#1e3a8a] hover:bg-[#1a3174] text-white font-black h-20 text-2xl rounded-3xl shadow-2xl shadow-blue-900/40 active:scale-[0.98] transition-all group mt-8 uppercase tracking-widest"
+                          className="w-full gradient-primary text-white font-bold h-14 text-lg rounded-xl shadow-lg shadow-primary/10 active:scale-[0.98] transition-all uppercase tracking-widest mt-4"
                           onClick={handleSubmit}
                           disabled={isSubmitting}
                         >
                           {isSubmitting ? (
-                            <span className="flex items-center gap-5">
-                              <span className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                              Transmitting Data...
+                            <span className="flex items-center gap-3">
+                              <span className="w-6 h-6 border-3 border-white/20 border-t-white rounded-full animate-spin" />
+                              Transmitting...
                             </span>
                           ) : (
-                            <><Send className="w-8 h-8 mr-6 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform duration-500" /> Confirm & Post Solution</>
+                            <><Send className="w-5 h-5 mr-3" /> Confirm & Submit Solution</>
                           )}
                         </Button>
                       </div>
