@@ -26,10 +26,16 @@ ADD COLUMN IF NOT EXISTS company_name TEXT;
 -- 5. Create index on team_solutions team_id
 CREATE INDEX IF NOT EXISTS idx_team_solutions_team_id ON team_solutions(team_id);
 
--- 6. Force schema cache reload (Run this if you have Superuser, otherwise wait 2 mins)
--- NOTIFY pgrst, 'reload schema';
+-- 6. Drop problematic foreign key constraint
+-- This resolves: "violates foreign key constraint team_solutions_registration_id_fkey"
+-- which happens when internal IDs differ between primary and secondary databases.
+ALTER TABLE team_solutions 
+DROP CONSTRAINT IF EXISTS team_solutions_registration_id_fkey;
 
--- 7. Verify the columns exist
+-- 7. Force schema cache reload
+NOTIFY pgrst, 'reload schema';
+
+-- 8. Verify the columns exist
 SELECT table_name, column_name, data_type 
 FROM information_schema.columns 
 WHERE table_name IN ('team_registrations', 'team_solutions')
