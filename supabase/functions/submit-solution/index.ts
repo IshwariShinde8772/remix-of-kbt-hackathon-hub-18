@@ -94,6 +94,7 @@ serve(async (req) => {
     // SUBMISSION MODE: Handle multipart form data
     // ═══════════════════════════════════════════════════════════════
     if (contentType.includes("multipart/form-data")) {
+      console.log("📤 Received solution submission request (multipart/form-data)");
       const formData = await req.formData();
 
       const teamId = formData.get("team_id") as string;
@@ -104,6 +105,8 @@ serve(async (req) => {
       const youtubeLink = formData.get("youtube_link") as string;
       const pdfFile = formData.get("solution_file") as File;
 
+      console.log(`📝 Processing submission for Team: ${teamId}, Title: ${solutionTitle}`);
+
       // Validate inputs
       const errors = [];
       if (!teamId) errors.push("Team ID");
@@ -113,6 +116,7 @@ serve(async (req) => {
       if (!pdfFile) errors.push("Solution PDF");
 
       if (errors.length > 0) {
+        console.warn(`⚠️ Validation failed: Missing ${errors.join(", ")}`);
         return new Response(
           JSON.stringify({ error: `Missing required fields: ${errors.join(", ")}` }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -120,6 +124,7 @@ serve(async (req) => {
       }
 
       // Step 1: Verify team exists and get their primary 'id'
+      console.log(`🔍 Verifying team credentials in database...`);
       const { data: teamData, error: teamError } = await db
         .from(regTable)
         .select(`id, team_name, leader_email, company_name, mentor_name`)
@@ -129,6 +134,7 @@ serve(async (req) => {
         .single();
 
       if (teamError || !teamData) {
+        console.error(`❌ Team verification failed: ${teamError?.message || "Team not found"}`);
         return new Response(
           JSON.stringify({ error: "Team verification failed. Invalid credentials." }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -137,6 +143,7 @@ serve(async (req) => {
       
       // Step 2: Upload PDF to storage
       const fileName = `${teamId}-${Date.now()}.pdf`;
+      console.log(`📂 Uploading solution PDF: ${fileName}`);
       const fileBuffer = await pdfFile.arrayBuffer();
 
       const { error: uploadError } = await db.storage
@@ -144,13 +151,16 @@ serve(async (req) => {
         .upload(fileName, fileBuffer, { contentType: "application/pdf" });
 
       if (uploadError) {
+        console.error(`❌ PDF upload failed: ${uploadError.message}`);
         throw new Error(`File upload failed: ${uploadError.message}`);
       }
+      console.log(`✅ PDF uploaded successfully`);
 
       // Automatically use company_name (fallback to mentor_name) from registration
       const companyName = teamData.company_name || teamData.mentor_name;
 
       // Step 3: Create submission record
+      console.log(`💾 Inserting submission record to ${subTable}...`);
       const submissionData = {
         team_id: teamId,
         registration_id: teamData.id, // Linking via the primary id
@@ -169,10 +179,13 @@ serve(async (req) => {
         .single();
 
       if (subError) {
+        console.error(`❌ Database insert failed: ${subError.message}`);
         throw new Error(`Submission record failed: ${subError.message}`);
       }
+      console.log(`✅ Submission record created with ID: ${subData.id}`);
 
       // Step 4: Log activity
+      console.log(`📜 Logging activity...`);
       await db.from("activity_logs").insert({
         timestamp: new Date().toISOString(),
         action: "solution_submission",
@@ -189,12 +202,17 @@ serve(async (req) => {
 
       // Step 5: Send confirmation email
       const sendSubmissionEmail = async () => {
+        console.log("📧 Starting email send process...");
         const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
         const gmailUser = "kbtavinyathon@gmail.com";
 
-        if (!gmailAppPassword) return;
+        if (!gmailAppPassword) {
+          console.warn("⚠️ GMAIL_APP_PASSWORD not set - skipping email");
+          return;
+        }
 
         try {
+          console.log(`📧 Sending submission email to: ${teamData.leader_email}`);
           const emailHtml = `<!DOCTYPE html>
 <html>
 <head><style>
@@ -240,13 +258,23 @@ serve(async (req) => {
             subject: `✅ Solution Submitted - Team ID: ${teamId}`,
             html: emailHtml,
           });
+          console.log(`✅ Submission email sent successfully`);
         } catch (emailError) {
-          console.error("Email error:", emailError);
+          console.error("❌ Email error:", emailError);
         }
       };
 
-      sendSubmissionEmail();
+      // Send email with timeout (don't block the response too long)
+      try {
+        await Promise.race([
+          sendSubmissionEmail(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Email timeout")), 5000))
+        ]);
+      } catch (e: any) {
+        console.warn(`⚠️ Email background task warning: ${e.message}`);
+      }
 
+      console.log(`🏁 Submission process completed successfully for ${teamId}`);
       return new Response(
         JSON.stringify({
           success: true,

@@ -18,6 +18,7 @@ serve(async (req) => {
 
   try {
     const data = await req.json();
+    console.log(`📥 Received registration request for: ${data.team_name || "New Team"}`);
     const { reg_file_data, reg_file_name, reg_file_type } = data;
 
     // Get API key from environment
