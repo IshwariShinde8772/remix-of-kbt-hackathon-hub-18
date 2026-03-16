@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import nodemailer from "npm:nodemailer";
 
 const corsHeaders = {
@@ -11,17 +12,17 @@ const corsHeaders = {
 const DB_EXTERNAL = "https://lxawemydhhmqjahttrlb.supabase.co";
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const contentType = req.headers.get("content-type") || "";
+  console.log(`🚀 Function started: submit-solution | Method: ${req.method}`);
 
   try {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-
     if (!supabaseKey) {
-      throw new Error("Missing Supabase configuration");
+      throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
     }
 
     const db = createClient(DB_EXTERNAL, supabaseKey);
@@ -29,191 +30,161 @@ serve(async (req) => {
     const subTable = "team_solutions";
     const teamIdCol = "team_id";
 
+    // 1. Get request body
+    const body = await req.json();
+    const { action, team_id, college_name, institute_number } = body;
+
     // ═══════════════════════════════════════════════════════════════
-    // VALIDATION MODE: Check team exists
+    // MODE: VALIDATE (JSON)
     // ═══════════════════════════════════════════════════════════════
-    if (contentType.includes("application/json")) {
-      let body;
-      try {
-        body = await req.json();
-      } catch (e: any) {
+    if (action === "validate") {
+      if (!team_id) {
         return new Response(
-          JSON.stringify({ error: "Invalid JSON request" }),
+          JSON.stringify({ error: "Team ID is required" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      if (body.action === "validate") {
-        const { team_id, college_name, institute_number } = body;
+      console.log(`🔍 Validating team: ${team_id}`);
+      const { data: team, error: findError } = await db
+        .from(regTable)
+        .select(`${teamIdCol}, id, team_name, leader_name, college_name, leader_email, problem_statement_title, problem_description, domain, company_name, mentor_name`)
+        .eq(teamIdCol, team_id.trim())
+        .ilike("college_name", `%${college_name?.trim() || ""}%`)
+        .eq("institute_number", institute_number?.trim() || "")
+        .single();
 
-        if (!team_id) {
-          return new Response(
-            JSON.stringify({ error: "Team ID is required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        console.log(`🔍 Validating team: ${team_id}`);
-        
-        // Fetch details from team_registrations. Use 'id' as 'registration_id'
-        const { data: team, error: findError } = await db
-          .from(regTable)
-          .select(`${teamIdCol}, id, team_name, leader_name, college_name, leader_email, problem_statement_title, problem_description, domain, company_name, mentor_name`)
-          .eq(teamIdCol, team_id.trim())
-          .ilike("college_name", `%${college_name?.trim() || ""}%`)
-          .eq("institute_number", institute_number?.trim() || "")
-          .single();
-
-        if (findError || !team) {
-          console.error(`❌ Team validation failed: ${findError?.message || "Team not found"}`);
-          return new Response(
-            JSON.stringify({ error: "Invalid Team ID or college details" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        console.log(`✅ Team validated: ${team.team_name}`);
+      if (findError || !team) {
+        console.error(`❌ Validation failed: ${findError?.message || "Team not found"}`);
         return new Response(
-          JSON.stringify({ 
-            success: true, 
-            team_name: team.team_name,
-            leader_name: team.leader_name || "Leader",
-            college_name: team.college_name || "College",
-            problem_statement: team.problem_statement_title || "Problem Statement",
-            problem_description: team.problem_description || "",
-            domain: team.domain || "Unknown Domain",
-            company_name: team.company_name || team.mentor_name || "N/A",
-            registration_id: team.id // Note: using 'id' as the unique registration reference
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Invalid Team ID or college details" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      console.log(`✅ Team validated: ${team.team_name}`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          team_name: team.team_name,
+          leader_name: team.leader_name || "Leader",
+          college_name: team.college_name || "College",
+          problem_statement: team.problem_statement_title || "Problem Statement",
+          problem_description: team.problem_description || "",
+          domain: team.domain || "Unknown Domain",
+          company_name: team.company_name || team.mentor_name || "N/A",
+          registration_id: team.id
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // SUBMISSION MODE: Handle multipart form data
+    // MODE: SUBMIT (JSON + Base64)
     // ═══════════════════════════════════════════════════════════════
-    if (contentType.includes("multipart/form-data")) {
-      console.log("📤 Received solution submission request (multipart/form-data)");
-      const formData = await req.formData();
+    console.log("📤 Processing solution submission...");
+    const { solution_title, solution_description, youtube_link, solution_file_base64 } = body;
 
-      const teamId = formData.get("team_id") as string;
-      const collegeName = formData.get("college_name") as string;
-      const instituteNumber = formData.get("institute_number") as string;
-      const solutionTitle = formData.get("solution_title") as string;
-      const solutionDescription = formData.get("solution_description") as string;
-      const youtubeLink = formData.get("youtube_link") as string;
-      const pdfFile = formData.get("solution_file") as File;
+    if (!team_id || !solution_title || !solution_file_base64) {
+      console.warn("⚠️ Validation failed: Missing required fields");
+      return new Response(
+        JSON.stringify({ error: "Missing required fields for submission" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-      console.log(`📝 Processing submission for Team: ${teamId}, Title: ${solutionTitle}`);
+    // Step 1: Verify team
+    console.log(`🔍 Verifying team ${team_id} for final submission...`);
+    const { data: teamData, error: teamError } = await db
+      .from(regTable)
+      .select(`id, team_name, leader_email, company_name, mentor_name`)
+      .eq(teamIdCol, team_id)
+      .ilike("college_name", `%${college_name || ""}%`)
+      .eq("institute_number", institute_number || "")
+      .single();
 
-      // Validate inputs
-      const errors = [];
-      if (!teamId) errors.push("Team ID");
-      if (!solutionTitle) errors.push("Solution Title");
-      if (!solutionDescription) errors.push("Solution Description");
-      if (!youtubeLink) errors.push("YouTube link");
-      if (!pdfFile) errors.push("Solution PDF");
+    if (teamError || !teamData) {
+      console.error(`❌ Team verification failed: ${teamError?.message}`);
+      return new Response(
+        JSON.stringify({ error: "Team verification failed. Invalid credentials." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-      if (errors.length > 0) {
-        console.warn(`⚠️ Validation failed: Missing ${errors.join(", ")}`);
-        return new Response(
-          JSON.stringify({ error: `Missing required fields: ${errors.join(", ")}` }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Step 1: Verify team exists and get their primary 'id'
-      console.log(`🔍 Verifying team credentials in database...`);
-      const { data: teamData, error: teamError } = await db
-        .from(regTable)
-        .select(`id, team_name, leader_email, company_name, mentor_name`)
-        .eq(teamIdCol, teamId)
-        .ilike("college_name", `%${collegeName || ""}%`)
-        .eq("institute_number", instituteNumber || "")
-        .single();
-
-      if (teamError || !teamData) {
-        console.error(`❌ Team verification failed: ${teamError?.message || "Team not found"}`);
-        return new Response(
-          JSON.stringify({ error: "Team verification failed. Invalid credentials." }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      // Step 2: Upload PDF to storage
-      const fileName = `${teamId}-${Date.now()}.pdf`;
-      console.log(`📂 Uploading solution PDF: ${fileName}`);
-      const fileBuffer = await pdfFile.arrayBuffer();
-
+    // Step 2: Decode and Upload PDF
+    const fileName = `${team_id}-${Date.now()}.pdf`;
+    console.log(`📂 Decoding and uploading solution PDF: ${fileName}`);
+    
+    try {
+      const decodedFile = decode(solution_file_base64);
       const { error: uploadError } = await db.storage
         .from("solutions")
-        .upload(fileName, fileBuffer, { contentType: "application/pdf" });
+        .upload(fileName, decodedFile, { contentType: "application/pdf" });
 
       if (uploadError) {
         console.error(`❌ PDF upload failed: ${uploadError.message}`);
         throw new Error(`File upload failed: ${uploadError.message}`);
       }
       console.log(`✅ PDF uploaded successfully`);
+    } catch (decodeErr: any) {
+      console.error(`❌ Error decoding/uploading file: ${decodeErr.message}`);
+      throw new Error("Invalid file data received");
+    }
 
-      // Automatically use company_name (fallback to mentor_name) from registration
-      const companyName = teamData.company_name || teamData.mentor_name;
+    // Step 3: Insert record
+    const companyName = teamData.company_name || teamData.mentor_name;
+    console.log(`💾 Saving submission record...`);
+    const submissionData = {
+      team_id,
+      registration_id: teamData.id,
+      solution_title,
+      solution_description,
+      company_name: companyName || null,
+      video_link: youtube_link,
+      solution_pdf_url: fileName,
+      status: "submitted",
+    };
 
-      // Step 3: Create submission record
-      console.log(`💾 Inserting submission record to ${subTable}...`);
-      const submissionData = {
-        team_id: teamId,
-        registration_id: teamData.id, // Linking via the primary id
-        solution_title: solutionTitle,
-        solution_description: solutionDescription,
-        company_name: companyName || null,
-        video_link: youtubeLink,
-        solution_pdf_url: fileName,
-        status: "submitted",
-      };
+    const { data: subData, error: subError } = await db
+      .from(subTable)
+      .insert([submissionData])
+      .select("id")
+      .single();
 
-      const { data: subData, error: subError } = await db
-        .from(subTable)
-        .insert([submissionData])
-        .select("id")
-        .single();
+    if (subError) {
+      console.error(`❌ Database insert failed: ${subError.message}`);
+      throw new Error(`Submission record failed: ${subError.message}`);
+    }
+    console.log(`✅ Record created: ${subData.id}`);
 
-      if (subError) {
-        console.error(`❌ Database insert failed: ${subError.message}`);
-        throw new Error(`Submission record failed: ${subError.message}`);
+    // Step 4: Log activity
+    console.log(`📜 Logging activity...`);
+    await db.from("activity_logs").insert({
+      timestamp: new Date().toISOString(),
+      action: "solution_submission",
+      team_id,
+      user_email: teamData.leader_email,
+      details: {
+        team_name: teamData.team_name,
+        solution_title,
+        file_name: fileName,
+      },
+      status: "success",
+    });
+
+    // Step 5: Send confirmation email
+    const sendSubmissionEmail = async () => {
+      console.log("📧 Starting email send...");
+      const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+      const gmailUser = "kbtavinyathon@gmail.com";
+
+      if (!gmailAppPassword) {
+        console.warn("⚠️ GMAIL_APP_PASSWORD missing - skipping email");
+        return;
       }
-      console.log(`✅ Submission record created with ID: ${subData.id}`);
 
-      // Step 4: Log activity
-      console.log(`📜 Logging activity...`);
-      await db.from("activity_logs").insert({
-        timestamp: new Date().toISOString(),
-        action: "solution_submission",
-        team_id: teamId,
-        user_email: teamData.leader_email,
-        details: {
-          team_name: teamData.team_name,
-          solution_title: solutionTitle,
-          file_name: fileName,
-          video_link: youtubeLink,
-        },
-        status: "success",
-      });
-
-      // Step 5: Send confirmation email
-      const sendSubmissionEmail = async () => {
-        console.log("📧 Starting email send process...");
-        const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
-        const gmailUser = "kbtavinyathon@gmail.com";
-
-        if (!gmailAppPassword) {
-          console.warn("⚠️ GMAIL_APP_PASSWORD not set - skipping email");
-          return;
-        }
-
-        try {
-          console.log(`📧 Sending submission email to: ${teamData.leader_email}`);
-          const emailHtml = `<!DOCTYPE html>
+      try {
+        const emailHtml = `<!DOCTYPE html>
 <html>
 <head><style>
   body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
@@ -231,9 +202,9 @@ serve(async (req) => {
     </div>
     <div class="content">
       <p>Hello <strong>${teamData.team_name}</strong>,</p>
-      <p>Your solution for <strong>"${solutionTitle}"</strong> has been successfully submitted!</p>
+      <p>Your solution for <strong>"${solution_title}"</strong> has been successfully submitted!</p>
       <div class="detail-box">
-        <p><strong>Team ID:</strong> ${teamId}</p>
+        <p><strong>Team ID:</strong> ${team_id}</p>
         <p><strong>Status:</strong> Confirmed ✓</p>
       </div>
     </div>
@@ -245,55 +216,49 @@ serve(async (req) => {
 </body>
 </html>`;
 
-          const transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com",
-            port: 465,
-            secure: true,
-            auth: { user: gmailUser, pass: gmailAppPassword },
-          });
+        const transporter = nodemailer.createTransport({
+          host: "smtp.gmail.com",
+          port: 465,
+          secure: true,
+          auth: { user: gmailUser, pass: gmailAppPassword },
+        });
 
-          await transporter.sendMail({
-            from: `"KBT Avinyathon 2026" <${gmailUser}>`,
-            to: teamData.leader_email,
-            subject: `✅ Solution Submitted - Team ID: ${teamId}`,
-            html: emailHtml,
-          });
-          console.log(`✅ Submission email sent successfully`);
-        } catch (emailError) {
-          console.error("❌ Email error:", emailError);
-        }
-      };
-
-      // Send email with timeout (don't block the response too long)
-      try {
-        await Promise.race([
-          sendSubmissionEmail(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Email timeout")), 5000))
-        ]);
-      } catch (e: any) {
-        console.warn(`⚠️ Email background task warning: ${e.message}`);
+        await transporter.sendMail({
+          from: `"KBT Avinyathon 2026" <${gmailUser}>`,
+          to: teamData.leader_email,
+          subject: `✅ Solution Submitted - Team ID: ${team_id}`,
+          html: emailHtml,
+        });
+        console.log(`✅ Email sent to ${teamData.leader_email}`);
+      } catch (err: any) {
+        console.error("❌ Email error:", err.message);
       }
+    };
 
-      console.log(`🏁 Submission process completed successfully for ${teamId}`);
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: "Solution submitted successfully!",
-          submission_id: subData.id,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Race email with timeout
+    try {
+      await Promise.race([
+        sendSubmissionEmail(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Email timeout")), 5000))
+      ]);
+    } catch (e: any) {
+      console.warn(`🕒 Email task finished with: ${e.message}`);
     }
 
+    console.log(`🏁 All steps completed for ${team_id}`);
     return new Response(
-      JSON.stringify({ error: "Unsupported request format" }),
-      { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: true,
+        message: "Solution submitted successfully!",
+        submission_id: subData.id,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
-    console.error(`❌ Submission error: ${error.message}`);
+    console.error(`❌ Final Error in submit-solution: ${error.message}`);
     return new Response(
-      JSON.stringify({ error: "Submission failed. Please check your connection and try again later." }),
+      JSON.stringify({ error: "Submission failed. Please check your connection and try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

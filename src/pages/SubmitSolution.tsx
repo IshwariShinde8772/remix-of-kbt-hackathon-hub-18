@@ -143,17 +143,30 @@ const SubmitSolution = () => {
 
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.set("team_id", teamIdInput.trim());
-      formData.set("college_name", collegeName.trim());
-      formData.set("institute_number", instituteNumber.trim());
-      formData.set("solution_title", verifiedTeam.problem_statement);
-      formData.set("youtube_link", youtubeLink.trim());
-      formData.set("solution_description", description.trim());
-      formData.append("solution_file", solutionFile);
+      let solutionFileBase64 = "";
+      if (solutionFile) {
+        solutionFileBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64String = reader.result as string;
+            resolve(base64String.split(',')[1]); // Remove the data:xxx base64 prefix
+          };
+          reader.readAsDataURL(solutionFile);
+        });
+      }
+
+      console.log("📤 Submitting solution for team:", teamIdInput.trim());
 
       const { data: result, error: invokeError } = await edgeFunctionsClient.functions.invoke("submit-solution", {
-        body: formData,
+        body: {
+          team_id: teamIdInput.trim(),
+          college_name: collegeName.trim(),
+          institute_number: instituteNumber.trim(),
+          solution_title: verifiedTeam.problem_statement,
+          youtube_link: youtubeLink.trim(),
+          solution_description: description.trim(),
+          solution_file_base64: solutionFileBase64,
+        }
       });
 
       if (invokeError) {
@@ -169,6 +182,7 @@ const SubmitSolution = () => {
       setSubmitted(true);
       toast.success("Solution submitted successfully!");
     } catch (error: any) {
+      console.error("❌ Submission catch error:", error);
       toast.error("Submission failed", {
         description: error.message || "Please check your connection and try again.",
         duration: 6000,
