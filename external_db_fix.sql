@@ -18,9 +18,10 @@ ADD COLUMN IF NOT EXISTS mentor_contact TEXT;
 -- 3. Create index on team_id for faster lookups
 CREATE INDEX IF NOT EXISTS idx_team_registrations_team_id ON team_registrations(team_id);
 
--- 4. Add team_id to team_solutions if missing
+-- 4. Add team_id and company_name to team_solutions if missing
 ALTER TABLE team_solutions 
-ADD COLUMN IF NOT EXISTS team_id TEXT;
+ADD COLUMN IF NOT EXISTS team_id TEXT,
+ADD COLUMN IF NOT EXISTS company_name TEXT;
 
 -- 5. Create index on team_solutions team_id
 CREATE INDEX IF NOT EXISTS idx_team_solutions_team_id ON team_solutions(team_id);
