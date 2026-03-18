@@ -238,7 +238,25 @@ const ProblemStatements = () => {
         setTeamCounts(counts);
       }
     };
+    
     fetchTeamCounts();
+
+    // Set up real-time subscription for team registration changes
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const isExternal = supabaseUrl.includes("lxawemydhhmqjahttrlb");
+    const regTable = isExternal ? "team_registrations" : "registered_teams";
+    const probIdCol = isExternal ? "problem_statement_id" : "selected_problem_id";
+
+    const channel = supabase
+      .channel("team_registrations_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: regTable },
+        () => fetchTeamCounts()
+      )
+      .subscribe();
+    
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   /* Pagination controls (shared) */
