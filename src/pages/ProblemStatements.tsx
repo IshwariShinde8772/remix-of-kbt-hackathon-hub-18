@@ -224,17 +224,25 @@ const ProblemStatements = () => {
       const probIdCol = isExternal ? "problem_statement_id" : "selected_problem_id";
 
       // Only count registrations from "go live" date (March 18, 2026) onwards
+      // Select both ID and Title for dual mapping (robustness across environments)
       const { data }: { data: any[] | null } = await supabase
         .from(regTable as any)
-        .select(probIdCol)
+        .select(`${probIdCol}, problem_statement_title`)
         .gte("created_at", "2026-03-18T00:00:00Z");
 
       if (data) {
         const counts: Record<string, number> = {};
         data.forEach((t: any) => {
           const pid = t[probIdCol];
+          const title = t.problem_statement_title;
+          
           if (pid) {
             counts[pid] = (counts[pid] || 0) + 1;
+          }
+          
+          // Map by title as a fallback for ID mismatches
+          if (title) {
+            counts[title] = (counts[title] || 0) + 1;
           }
         });
         setTeamCounts(counts);
@@ -377,7 +385,7 @@ const ProblemStatements = () => {
                     <ProblemCard
                       key={problem.id}
                       problem={problem}
-                      teamCount={teamCounts[problem.id] || 0}
+                      teamCount={teamCounts[problem.id] || teamCounts[problem.problem_title] || 0}
                       onView={() => setSelectedProblem(problem)}
                     />
                   ))}
@@ -460,7 +468,7 @@ const ProblemStatements = () => {
                     </Badge>
                   </div>
                   <div className="text-center text-sm text-muted-foreground">
-                    {teamCounts[problem.id] || 0} teams
+                    {teamCounts[problem.id] || teamCounts[problem.problem_title] || 0} teams
                   </div>
                   <div className="text-center">
                     <Button
