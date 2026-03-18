@@ -52,16 +52,16 @@ serve(async (req) => {
 
         // Upload to storage
         const { error: uploadError } = await db.storage
-          .from("solutions")
-          .upload(`registrations/${fileName}`, decodedFileData, { contentType, upsert: false });
+          .from("registration-forms")
+          .upload(fileName, decodedFileData, { contentType, upsert: false });
 
         if (uploadError) {
           throw new Error(`File upload failed: ${uploadError.message}`);
         }
 
         const { data: { publicUrl } } = db.storage
-          .from("solutions")
-          .getPublicUrl(`registrations/${fileName}`);
+          .from("registration-forms")
+          .getPublicUrl(fileName);
 
         finalRegFormUrl = publicUrl;
         console.log(`✅ File uploaded: ${fileName}`);
