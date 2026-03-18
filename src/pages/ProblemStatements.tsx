@@ -223,9 +223,11 @@ const ProblemStatements = () => {
       const regTable = isExternal ? "team_registrations" : "registered_teams";
       const probIdCol = isExternal ? "problem_statement_id" : "selected_problem_id";
 
+      // Only count registrations from "go live" date (March 18, 2026) onwards
       const { data }: { data: any[] | null } = await supabase
         .from(regTable as any)
-        .select(probIdCol);
+        .select(probIdCol)
+        .gte("created_at", "2026-03-18T00:00:00Z");
 
       if (data) {
         const counts: Record<string, number> = {};
