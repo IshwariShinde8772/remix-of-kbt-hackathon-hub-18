@@ -155,7 +155,7 @@ const RegisterTeam = () => {
       if (!mentorName.trim()) return showError("Mentor name is required");
       if (!mentorEmail.trim() || !/\S+@\S+\.\S+/.test(mentorEmail)) return showError("Valid mentor email is required");
       if (!mentorContact.trim() || mentorContact.length < 10) return showError("Valid mentor contact is required");
-      if (!regFormFile && !regFormUrl) return showError("Please upload the registration form");
+      if (!regFormFile && !regFormUrl) return showError("Team Authorization Form is required");
       return true;
     }
     return true;
@@ -555,12 +555,12 @@ const RegisterTeam = () => {
                     <div className="border-t border-border pt-4">
                       <div className="flex items-center gap-2 mb-4 text-primary font-bold">
                         <Plus className="w-5 h-5" />
-                        <h3 className="font-semibold uppercase tracking-wider">Team Authorization Form</h3>
+                        <h3 className="font-semibold uppercase tracking-wider">Team Authorization Form *</h3>
                       </div>
 
                       <div className="bg-muted p-4 rounded-xl border border-dashed border-primary/30 text-center">
                         <FileText className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                        <p className="text-sm text-foreground font-semibold mb-2">Upload Signed Team Registration Form</p>
+                        <p className="text-sm text-foreground font-semibold mb-2">Upload Signed Team Registration Form *</p>
                         <p className="text-xs text-muted-foreground mb-4">
                           Download the template from <a href="/resources" target="_blank" className="text-primary hover:underline">Resources</a>, get it signed by your college head, and upload a photo/PDF here.
                         </p>

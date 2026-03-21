@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, edgeFunctionsClient } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -220,15 +220,23 @@ const ProblemStatements = () => {
     const fetchTeamCounts = async () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const isExternal = supabaseUrl.includes("lxawemydhhmqjahttrlb");
-      const regTable = isExternal ? "team_registrations" : "registered_teams";
-      const probIdCol = isExternal ? "problem_statement_id" : "selected_problem_id";
+      
+      // We always want to fetch counts from the External DB where registrations are stored
+      // If we are already on the external site, use 'supabase' client, otherwise use 'edgeFunctionsClient'
+      const client = isExternal ? supabase : edgeFunctionsClient;
+      const regTable = "team_registrations";
+      const probIdCol = "problem_statement_id";
 
-      // Only count registrations from "go live" date (March 18, 2026) onwards
-      // Select both ID and Title for dual mapping (robustness across environments)
-      const { data }: { data: any[] | null } = await supabase
+      console.log(`📊 Fetching team counts from ${isExternal ? 'primary' : 'edge'} client...`);
+
+      const { data, error }: { data: any[] | null, error: any } = await client
         .from(regTable as any)
-        .select(`${probIdCol}, problem_statement_title`)
-        .gte("created_at", "2026-03-18T00:00:00Z");
+        .select(`${probIdCol}, problem_statement_title`);
+
+      if (error) {
+        console.error("❌ Error fetching team counts:", error);
+        return;
+      }
 
       if (data) {
         const counts: Record<string, number> = {};
@@ -245,28 +253,34 @@ const ProblemStatements = () => {
             counts[title] = (counts[title] || 0) + 1;
           }
         });
+        console.log("📊 Updated team counts:", counts);
         setTeamCounts(counts);
       }
     };
     
     fetchTeamCounts();
 
-    // Set up real-time subscription for team registration changes
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const isExternal = supabaseUrl.includes("lxawemydhhmqjahttrlb");
-    const regTable = isExternal ? "team_registrations" : "registered_teams";
-    const probIdCol = isExternal ? "problem_statement_id" : "selected_problem_id";
+    const client = isExternal ? supabase : edgeFunctionsClient;
+    const regTable = "team_registrations";
 
-    const channel = supabase
-      .channel("team_registrations_changes")
+    // Set up real-time subscription for team registration changes on the target database
+    const channel = client
+      .channel("team_registrations_external_changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: regTable },
-        () => fetchTeamCounts()
+        (payload) => {
+          console.log("🔔 Real-time change detected in registrations:", payload);
+          fetchTeamCounts();
+        }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`🔌 Subscription status for ${regTable}:`, status);
+      });
     
-    return () => { supabase.removeChannel(channel); };
+    return () => { client.removeChannel(channel); };
   }, []);
 
   /* Pagination controls (shared) */
