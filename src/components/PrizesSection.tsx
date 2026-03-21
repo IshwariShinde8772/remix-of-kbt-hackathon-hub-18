@@ -55,7 +55,7 @@ const PrizesSection = () => {
         <div className="text-center mb-4">
           <span className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-5 py-1.5 rounded-full text-xs md:text-sm font-semibold uppercase tracking-widest">
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-            Powered by Winjit
+            Powered by Winjit Technologies Pvt Ltd
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
           </span>
         </div>
