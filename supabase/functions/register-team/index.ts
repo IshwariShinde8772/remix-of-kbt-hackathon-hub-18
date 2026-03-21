@@ -42,43 +42,83 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════
     // STEP 1: Handle file upload (if provided)
     // ═══════════════════════════════════════════════════════════════
-    let finalRegFormUrl = data.registration_form_url || null;
+    // Trim URL and other inputs if provided
+    let rawRegFormUrl = (data.registration_form_url || "").trim();
+    let finalRegFormUrl = rawRegFormUrl || null;
+
+    console.log(`📂 Initial Registration Form URL: ${finalRegFormUrl || "none"}`);
 
     if (reg_file_data && reg_file_name) {
       try {
+        console.log(`📂 Processing file upload: ${reg_file_name} (${reg_file_type})`);
         const decodedFileData = decode(reg_file_data);
         const fileName = `${data.college_name?.replace(/[^a-zA-Z0-9]/g, "_") || "college"}_${Date.now()}_${reg_file_name}`;
         const contentType = reg_file_type || "application/pdf";
 
+        console.log(`📂 Target Bucket: registration-forms | FileName: ${fileName}`);
+
         // Upload to storage
-        const { error: uploadError } = await db.storage
+        const { data: uploadData, error: uploadError } = await db.storage
           .from("registration-forms")
-          .upload(fileName, decodedFileData, { contentType, upsert: false });
+          .upload(fileName, decodedFileData, { contentType, upsert: true });
 
         if (uploadError) {
+          console.error(`❌ Storage upload error:`, JSON.stringify(uploadError));
           throw new Error(`File upload failed: ${uploadError.message}`);
         }
+
+        console.log(`✅ File uploaded successfully:`, JSON.stringify(uploadData));
 
         const { data: { publicUrl } } = db.storage
           .from("registration-forms")
           .getPublicUrl(fileName);
 
         finalRegFormUrl = publicUrl;
-        console.log(`✅ File uploaded: ${fileName}`);
+        console.log(`✅ Public URL generated: ${finalRegFormUrl}`);
       } catch (fileErr: any) {
-        console.error(`⚠️ File upload warning: ${fileErr.message}`);
-        // Continue without file - it's not critical
+        console.error(`⚠️ File upload error: ${fileErr.message}`);
+        // Fallback to the link provided (if any)
+        if (!finalRegFormUrl && rawRegFormUrl) {
+           finalRegFormUrl = rawRegFormUrl;
+        } else if (!finalRegFormUrl) {
+          // If no fallback and file upload failed, this is a fatal error for the registration
+          throw new Error(`Registration failed: Could not process authorization form and no alternate link was provided.`);
+        }
       }
+    } else {
+      console.log(`ℹ️ No file data provided, using URL: ${finalRegFormUrl || "none"}`);
+    }
+
+    // MANDATORY URL CHECK
+    if (!finalRegFormUrl) {
+      console.error(`❌ Registration rejected: Missing registration_form_url`);
+      throw new Error("Team Authorization Form is mandatory. Please upload a file or provide a valid link.");
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 2: Check for duplicate registration
+    // STEP 2: Check for mandatory fields and trim data
+    // ═══════════════════════════════════════════════════════════════
+    const team_name = (data.team_name || "").trim();
+    const college_name = (data.college_name || "").trim();
+    const leader_email = (data.leader_email || "").trim();
+    const leader_name = (data.leader_name || "").trim();
+    const leader_contact = (data.leader_contact || data.leader_phone || "").trim();
+    const domain = (data.domain || data.selected_domain || "").trim();
+    const problem_statement_id = (data.problem_statement_id || data.selected_problem_id || "").trim();
+
+    if (!team_name || !college_name || !leader_email || !leader_name || !domain || !problem_statement_id) {
+       console.error(`❌ Missing mandatory fields:`, { team_name, college_name, leader_email, domain });
+       throw new Error("Missing mandatory registration information. Please fill all required fields.");
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 3: Check for duplicate registration
     // ═══════════════════════════════════════════════════════════════
     const { data: existing } = await db
       .from(table)
       .select(idColumn)
       .eq("institute_number", data.institute_number?.trim() || "")
-      .ilike("college_name", data.college_name?.trim() || "")
+      .ilike("college_name", college_name)
       .limit(1);
 
     if (existing && existing.length > 0) {
@@ -90,7 +130,7 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 3: Generate team ID (find highest existing ID and increment)
+    // STEP 4: Generate team ID (find highest existing ID and increment)
     // ═══════════════════════════════════════════════════════════════
     let generatedId = `KBT-0001`;
 
@@ -118,7 +158,7 @@ serve(async (req) => {
     console.log(`📝 Generated Team ID: ${generatedId}`);
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 4: Prepare registration data (matching actual table schema)
+    // STEP 5: Prepare registration data (matching actual table schema)
     // ═══════════════════════════════════════════════════════════════
     const membersArray = data.members || [];
     
@@ -131,34 +171,34 @@ serve(async (req) => {
 
     // Build members JSON for the members JSONB column
     const membersJson = membersArray.map((member: any) => ({
-      name: member.name,
-      email: member.email,
-      contact: member.contact,
+      name: (member.name || "").trim(),
+      email: (member.email || "").trim(),
+      contact: (member.contact || "").trim(),
     }));
 
     const registrationData: any = {
-      team_name: data.team_name || "Unknown Team",
-      college_name: data.college_name || "Unknown College",
-      institute_number: data.institute_number || "000000",
-      leader_name: data.leader_name || "Unknown",
-      leader_email: data.leader_email || "unknown@email.com",
-      leader_contact: data.leader_contact || data.leader_phone || "0000000000",
-      domain: data.domain || data.selected_domain || "Software",
-      problem_statement_id: data.problem_statement_id || data.selected_problem_id || "PS-0000",
+      team_name: team_name,
+      college_name: college_name,
+      institute_number: data.institute_number?.trim() || "000000",
+      leader_name: leader_name,
+      leader_email: leader_email,
+      leader_contact: leader_contact,
+      domain: domain,
+      problem_statement_id: problem_statement_id,
       problem_statement_uuid: data.problem_statement_uuid || null,
       problem_statement_title: data.problem_statement_title || "Unknown Problem",
       problem_description: data.problem_description || "No description",
       company_name: data.company_name || "N/A",
-      mentor_name: data.mentor_name || "N/A",
-      mentor_email: data.mentor_email || "N/A",
-      mentor_contact: data.mentor_contact || "N/A",
+      mentor_name: data.mentor_name?.trim() || "N/A",
+      mentor_email: data.mentor_email?.trim() || "N/A",
+      mentor_contact: data.mentor_contact?.trim() || "N/A",
       registration_form_url: finalRegFormUrl,
       registration_id: generatedId,
       team_id: generatedId,
       members: membersJson,
       city: data.city || null,
       state: data.state || null,
-      member_contacts: membersArray.map((m: any) => m.contact),
+      member_contacts: membersArray.map((m: any) => (m.contact || "").trim()),
       status: "registered",
     };
 

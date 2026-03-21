@@ -134,15 +134,15 @@ const RegisterTeam = () => {
       if (!collegeName.trim()) return showError("College name is required");
       if (!instituteNumber.trim()) return showError("Institute number is required");
       if (!leaderName.trim()) return showError("Leader name is required");
-      if (!leaderEmail.trim() || !/\S+@\S+\.\S+/.test(leaderEmail)) return showError("Valid leader email is required");
-      if (!leaderPhone.trim() || leaderPhone.length < 10) return showError("Valid contact number is required");
+      if (!leaderEmail.trim() || !/\S+@\S+\.\S+/.test(leaderEmail.trim())) return showError("Valid leader email is required");
+      if (!leaderPhone.trim() || leaderPhone.trim().length < 10) return showError("Valid contact number is required");
       return true;
     }
     if (step === 2) {
       for (let i = 0; i < members.length; i++) {
         if (!members[i].name.trim()) return showError(`Member ${i + 1} name is required`);
-        if (!members[i].email.trim() || !/\S+@\S+\.\S+/.test(members[i].email)) return showError(`Valid email required for member ${i + 1}`);
-        if (!members[i].contact.trim() || members[i].contact.length < 10) return showError(`Valid contact required for member ${i + 1}`);
+        if (!members[i].email.trim() || !/\S+@\S+\.\S+/.test(members[i].email.trim())) return showError(`Valid email required for member ${i + 1}`);
+        if (!members[i].contact.trim() || members[i].contact.trim().length < 10) return showError(`Valid contact required for member ${i + 1}`);
       }
       return true;
     }
@@ -153,9 +153,9 @@ const RegisterTeam = () => {
     }
     if (step === 4) {
       if (!mentorName.trim()) return showError("Mentor name is required");
-      if (!mentorEmail.trim() || !/\S+@\S+\.\S+/.test(mentorEmail)) return showError("Valid mentor email is required");
-      if (!mentorContact.trim() || mentorContact.length < 10) return showError("Valid mentor contact is required");
-      if (!regFormFile && !regFormUrl) return showError("Team Authorization Form is required");
+      if (!mentorEmail.trim() || !/\S+@\S+\.\S+/.test(mentorEmail.trim())) return showError("Valid mentor email is required");
+      if (!mentorContact.trim() || mentorContact.trim().length < 10) return showError("Valid mentor contact is required");
+      if (!regFormFile && !regFormUrl.trim()) return showError("Team Authorization Form (Upload or Link) is required");
       return true;
     }
     return true;
@@ -229,23 +229,26 @@ const RegisterTeam = () => {
       for (let attempt = 1; attempt <= 2; attempt++) {
         const { data, error } = await edgeFunctionsClient.functions.invoke("register-team", {
           body: {
-            team_name: teamName,
-            college_name: collegeName,
-            institute_number: instituteNumber,
-            leader_name: leaderName,
-            leader_email: leaderEmail,
-            leader_phone: leaderPhone,
-            members,
+            team_name: teamName.trim(),
+            college_name: collegeName.trim(),
+            institute_number: instituteNumber.trim(),
+            leader_name: leaderName.trim(),
+            leader_email: leaderEmail.trim(),
+            leader_phone: leaderPhone.trim(),
+            members: members.map(m => ({
+              name: m.name.trim(),
+              email: m.email.trim(),
+              contact: m.contact.trim()
+            })),
             selected_problem_id: selectedProblemId,
             selected_domain: selectedDomain,
             problem_statement_title: selectedProblem?.problem_title || "",
             problem_description: selectedProblem?.problem_description || "",
             company_name: selectedProblem?.company_name || "",
-            approach_description: selectedProblem?.problem_description || "", // Keep for legacy if needed
-            mentor_name: mentorName,
-            mentor_email: mentorEmail,
-            mentor_contact: mentorContact,
-            registration_form_url: regFormUrl, // This could be a static link
+            mentor_name: mentorName.trim(),
+            mentor_email: mentorEmail.trim(),
+            mentor_contact: mentorContact.trim(),
+            registration_form_url: regFormUrl.trim(),
             reg_file_data: regFileData,
             reg_file_name: regFileName,
             reg_file_type: regFileType,
