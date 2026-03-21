@@ -136,7 +136,7 @@ serve(async (req) => {
       contact: member.contact,
     }));
 
-    const registrationData = {
+    const registrationData: any = {
       team_name: data.team_name || "Unknown Team",
       college_name: data.college_name || "Unknown College",
       institute_number: data.institute_number || "000000",
@@ -153,6 +153,7 @@ serve(async (req) => {
       mentor_email: data.mentor_email || "N/A",
       mentor_contact: data.mentor_contact || "N/A",
       registration_form_url: finalRegFormUrl,
+      registration_id: generatedId,
       team_id: generatedId,
       members: membersJson,
       city: data.city || null,
@@ -172,6 +173,7 @@ serve(async (req) => {
     while (insertAttempt < 3) {
       insertAttempt++;
       registrationData.team_id = finalTeamId;
+      registrationData.registration_id = finalTeamId;
 
       console.log(`📍 Attempting insert #${insertAttempt} with team_id: ${finalTeamId}`);
       console.log(`📦 Table: ${table}`);
