@@ -1,0 +1,74 @@
+diff --git a/src/pages/SubmitSolution_utf8.tsx b/src/pages/SubmitSolution_utf8.tsx
+index 278cb2a..3d12735 100644
+--- a/src/pages/SubmitSolution_utf8.tsx
++++ b/src/pages/SubmitSolution_utf8.tsx
+@@ -1,4 +1,4 @@
+-﻿import { useState, useEffect } from "react";
++import { useState, useEffect } from "react";
+ import { supabase, edgeFunctionsClient } from "@/integrations/supabase/client";
+ import Header from "@/components/Header";
+ import Navbar from "@/components/Navbar";
+@@ -131,17 +131,29 @@ const SubmitSolution = () => {
+ 
+     setIsSubmitting(true);
+     try {
+-      const formData = new FormData();
+-      formData.append("team_id", teamIdInput.trim());
+-      formData.append("college_name", collegeName.trim());
+-      formData.append("institute_number", instituteNumber.trim());
+-      formData.append("company_name", companyName.trim());
+-      formData.append("youtube_link", youtubeLink.trim());
+-      formData.append("description", description.trim() || "");
+-      formData.append("solution_file", solutionFile);
++      let solutionFileBase64 = null;
++      if (solutionFile) {
++        solutionFileBase64 = await new Promise((resolve) => {
++          const reader = new FileReader();
++          reader.onloadend = () => {
++            const base64String = reader.result as string;
++            resolve(base64String.split(',')[1]); // Remove prefix
++          };
++          reader.readAsDataURL(solutionFile);
++        });
++      }
+ 
+       const { data: result, error: invokeError } = await edgeFunctionsClient.functions.invoke("submit-solution", {
+-        body: formData,
++        body: {
++          team_id: teamIdInput.trim(),
++          college_name: collegeName.trim(),
++          institute_number: instituteNumber.trim(),
++          company_name: companyName.trim(),
++          youtube_link: youtubeLink.trim(),
++          solution_title: verifiedTeam.problem_statement,
++          solution_description: description.trim() || "",
++          solution_file_base64: solutionFileBase64
++        },
+       });
+ 
+       if (invokeError) {
+diff --git a/supabase/functions/register-team/index.ts b/supabase/functions/register-team/index.ts
+index 343caa9..6599445 100644
+--- a/supabase/functions/register-team/index.ts
++++ b/supabase/functions/register-team/index.ts
+@@ -52,16 +52,16 @@ serve(async (req) => {
+ 
+         // Upload to storage
+         const { error: uploadError } = await db.storage
+-          .from("solutions")
+-          .upload(`registrations/${fileName}`, decodedFileData, { contentType, upsert: false });
++          .from("registration-forms")
++          .upload(fileName, decodedFileData, { contentType, upsert: false });
+ 
+         if (uploadError) {
+           throw new Error(`File upload failed: ${uploadError.message}`);
+         }
+ 
+         const { data: { publicUrl } } = db.storage
+-          .from("solutions")
+-          .getPublicUrl(`registrations/${fileName}`);
++          .from("registration-forms")
++          .getPublicUrl(fileName);
+ 
+         finalRegFormUrl = publicUrl;
+         console.log(`✅ File uploaded: ${fileName}`);

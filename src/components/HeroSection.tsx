@@ -25,6 +25,26 @@ const HeroSection = () => {
         </div>
       </div>
 
+      {/* Powered by — attractive sponsor attribution */}
+      <div className="flex justify-center mb-6 md:mb-8">
+        <div
+          className="relative inline-flex items-center gap-3 overflow-hidden rounded-full px-6 py-2.5 shadow-lg border border-primary/30"
+          style={{ background: "linear-gradient(135deg, hsl(270,65%,97%) 0%, hsl(217,91%,95%) 100%)" }}
+        >
+          {/* Shimmer sweep */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent -translate-x-full animate-shimmer pointer-events-none" />
+
+          <span className="text-sm md:text-base font-medium text-foreground/60 tracking-wide">Powered by</span>
+
+          <span
+            className="text-sm md:text-base font-extrabold tracking-wide bg-clip-text text-transparent"
+            style={{ backgroundImage: "linear-gradient(135deg, hsl(270,65%,50%) 0%, hsl(217,91%,45%) 100%)" }}
+          >
+            Winjit Technologies Pvt Ltd
+          </span>
+        </div>
+      </div>
+
       {/* Main Hero Content */}
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -42,7 +62,7 @@ const HeroSection = () => {
 
             <p className="text-foreground/90 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
               <strong>KBTCOE</strong> is organizing a{" "}
-              <strong>State-Level KBT-AVINYATHON in April 2026</strong> designed to bring
+              <strong>State-Level KBT-AVINYATHON 2026</strong> designed to bring
               together innovative young minds to solve real-world industry problems.
             </p>
 

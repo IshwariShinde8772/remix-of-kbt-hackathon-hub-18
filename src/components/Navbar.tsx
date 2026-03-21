@@ -18,6 +18,7 @@ const Navbar = () => {
   const navItems = [
     { name: "Home", path: "/" },
     { name: "Why Participate", path: "/#why-participate" },
+    { name: "Prizes & Awards", path: "/#prizes" },
     { name: "Process", path: "/#process" },
     { name: "Problem Statements", path: "/problems" },
     { name: "Resources", path: "/resources" },
@@ -97,11 +98,10 @@ const Navbar = () => {
                 key={item.name}
                 to={item.path}
                 onClick={(e) => handleNavClick(item.path, e)}
-                className={`relative px-3 lg:px-4 py-2 rounded-lg text-[13px] lg:text-sm font-medium tracking-wide transition-all duration-200 ${
-                  isActive(item.path)
-                    ? "bg-primary/90 text-primary-foreground shadow-sm"
-                    : "text-secondary-foreground/80 hover:text-secondary-foreground hover:bg-secondary-foreground/10"
-                }`}
+                className={`relative px-3 lg:px-4 py-2 rounded-lg text-[13px] lg:text-sm font-medium tracking-wide transition-all duration-200 ${isActive(item.path)
+                  ? "bg-primary/90 text-primary-foreground shadow-sm"
+                  : "text-secondary-foreground/80 hover:text-secondary-foreground hover:bg-secondary-foreground/10"
+                  }`}
               >
                 {item.name}
               </Link>
@@ -139,11 +139,10 @@ const Navbar = () => {
                 key={item.name}
                 to={item.path}
                 onClick={(e) => handleNavClick(item.path, e)}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive(item.path)
-                    ? "bg-primary/90 text-primary-foreground"
-                    : "text-secondary-foreground/80 hover:text-secondary-foreground hover:bg-secondary-foreground/10"
-                }`}
+                className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${isActive(item.path)
+                  ? "bg-primary/90 text-primary-foreground"
+                  : "text-secondary-foreground/80 hover:text-secondary-foreground hover:bg-secondary-foreground/10"
+                  }`}
               >
                 {item.name}
                 <ChevronRight className="w-4 h-4 opacity-40" />
