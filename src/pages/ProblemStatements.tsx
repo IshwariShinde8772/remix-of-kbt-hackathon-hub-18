@@ -22,6 +22,7 @@ interface ProblemStatement {
   resources_provided: string | null;
   resource_file_url: string | null;
   status: string;
+  selected_by_count?: number;
   created_at: string;
 }
 
@@ -240,6 +241,10 @@ const ProblemStatements = () => {
 
       if (data) {
         const counts: Record<string, number> = {};
+        
+        // Helper to normalize strings for comparison (remove extra spaces and trim)
+        const normalize = (s: string) => s?.toLowerCase().replace(/\s+/g, ' ').trim() || "";
+
         data.forEach((t: any) => {
           const pid = t[probIdCol];
           const title = t.problem_statement_title;
@@ -248,40 +253,50 @@ const ProblemStatements = () => {
             counts[pid] = (counts[pid] || 0) + 1;
           }
 
-          // Map by title as a fallback for ID mismatches
+          // Map by normalized title as a fallback
           if (title) {
-            counts[title] = (counts[title] || 0) + 1;
+            const normalizedTitle = normalize(title);
+            counts[normalizedTitle] = (counts[normalizedTitle] || 0) + 1;
           }
         });
+        
+        // Also map the current problems' normalized titles to their counts
+        problems.forEach(p => {
+          const normalizedPTitle = normalize(p.problem_title);
+          if (counts[normalizedPTitle] && !counts[p.id]) {
+            counts[p.id] = counts[normalizedPTitle];
+          }
+        });
+
         console.log("📊 Updated team counts:", counts);
         setTeamCounts(counts);
       }
     };
-
-    fetchTeamCounts();
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const isExternal = supabaseUrl.includes("lxawemydhhmqjahttrlb");
     const client = isExternal ? supabase : edgeFunctionsClient;
     const regTable = "team_registrations";
 
+    fetchTeamCounts();
+    
     // Set up real-time subscription for team registration changes on the target database
     const channel = client
       .channel("team_registrations_external_changes")
       .on(
-        "postgres_changes",
+        "postgres_changes" as any,
         { event: "*", schema: "public", table: regTable },
-        (payload) => {
+        (payload: any) => {
           console.log("🔔 Real-time change detected in registrations:", payload);
           fetchTeamCounts();
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: any) => {
         console.log(`🔌 Subscription status for ${regTable}:`, status);
       });
 
     return () => { client.removeChannel(channel); };
-  }, []);
+  }, [problems]);
 
   /* Pagination controls (shared) */
   const PaginationBar = () =>
@@ -399,7 +414,7 @@ const ProblemStatements = () => {
                     <ProblemCard
                       key={problem.id}
                       problem={problem}
-                      teamCount={teamCounts[problem.id] || teamCounts[problem.problem_title] || 0}
+                      teamCount={problem.selected_by_count || 0}
                       onView={() => setSelectedProblem(problem)}
                     />
                   ))}
@@ -482,7 +497,7 @@ const ProblemStatements = () => {
                     </Badge>
                   </div>
                   <div className="text-center text-sm text-muted-foreground">
-                    {teamCounts[problem.id] || teamCounts[problem.problem_title] || 0} teams
+                    {problem.selected_by_count || 0} teams
                   </div>
                   <div className="text-center">
                     <Button

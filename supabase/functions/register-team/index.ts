@@ -282,6 +282,26 @@ serve(async (req) => {
     }
 
     console.log(`✅ Logged registration for team ${teamId}`);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 6.5: Increment problem statement count
+    // ═══════════════════════════════════════════════════════════════
+    try {
+      if (problem_statement_id) {
+        console.log(`📈 Incrementing count for problem: ${problem_statement_id}`);
+        // Use RPC or direct update with arithmetic
+        // Since we are in the edge function with service role, we can do this easily
+        await db.rpc("increment_problem_count", { prob_id: problem_statement_id });
+        
+        // Fallback if RPC doesn't exist: Direct update (less atomic but works)
+        /*
+        const { data: prob } = await db.from('problem_statements').select('selected_by_count').eq('id', problem_statement_id).single();
+        await db.from('problem_statements').update({ selected_by_count: (prob?.selected_by_count || 0) + 1 }).eq('id', problem_statement_id);
+        */
+      }
+    } catch (countErr: any) {
+      console.warn(`⚠️ Could not increment problem count: ${countErr.message}`);
+    }
 
     // ═══════════════════════════════════════════════════════════════
     // STEP 7: Send confirmation email (non-blocking)
