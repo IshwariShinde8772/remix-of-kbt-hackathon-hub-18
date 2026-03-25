@@ -54,19 +54,19 @@ const COMPANY_WEBSITES: Record<string, string> = {
 };
 
 const LOCAL_RESOURCES: Record<string, { label: string; url: string }[]> = {
-  "Development of fixture for control panel assembly": [
-    { label: "Control Panel Frame Reference", url: "/resources/Control_Panel_Frame.png" },
-  ],
-  "Set-up for accurate position of central cylinder of calendar unit of plastic sheet extrusion machine": [
-    { label: "Avani Resource", url: "/resources/avani/avani_resource.jpg" },
-  ],
-  "Design and fabrication of set-up for manufacturing of locking pin and washer": [
-    { label: "Pentas Insulation (Design)", url: "/resources/pentas/Pentas Insulation (Design).pdf" },
-  ],
-  "Temperature distribution of composite wall using CFD": [
-    { label: "Pentas Insulation (Temperature)", url: "/resources/pentas/Pentas Insulation (Temperature).pdf" },
-  ],
-  "Real-time Payment Management, Inventory management and respective Invoice generation customised for construction management": [
+  // "Development of fixture for control panel assembly": [
+  //   { label: "Control Panel Frame Reference", url: "/resources/Control_Panel_Frame.png" },
+  // ],
+  // "Set-up for accurate position of central cylinder of calendar unit of plastic sheet extrusion machine": [
+  //   { label: "Avani Resource", url: "/resources/avani/avani_resource.jpg" },
+  // ],
+  // "Design and fabrication of set-up for manufacturing of locking pin and washer": [
+  //   { label: "Pentas Insulation (Design)", url: "/resources/pentas/Pentas Insulation (Design).pdf" },
+  // ],
+  // "Temperature distribution of composite wall using CFD": [
+  //   { label: "Pentas Insulation (Temperature)", url: "/resources/pentas/Pentas Insulation (Temperature).pdf" },
+  // ],
+  "Real -time  Payment Management,Inventory management and respective Invoice generation customised for construction management": [
     { label: "Samarth Developers Resource", url: "/resources/samarth/Samarth developers.pdf" },
   ],
 };
@@ -220,7 +220,7 @@ const ProblemStatements = () => {
     const fetchTeamCounts = async () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const isExternal = supabaseUrl.includes("lxawemydhhmqjahttrlb");
-      
+
       // We always want to fetch counts from the External DB where registrations are stored
       // If we are already on the external site, use 'supabase' client, otherwise use 'edgeFunctionsClient'
       const client = isExternal ? supabase : edgeFunctionsClient;
@@ -243,11 +243,11 @@ const ProblemStatements = () => {
         data.forEach((t: any) => {
           const pid = t[probIdCol];
           const title = t.problem_statement_title;
-          
+
           if (pid) {
             counts[pid] = (counts[pid] || 0) + 1;
           }
-          
+
           // Map by title as a fallback for ID mismatches
           if (title) {
             counts[title] = (counts[title] || 0) + 1;
@@ -257,7 +257,7 @@ const ProblemStatements = () => {
         setTeamCounts(counts);
       }
     };
-    
+
     fetchTeamCounts();
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -279,7 +279,7 @@ const ProblemStatements = () => {
       .subscribe((status) => {
         console.log(`🔌 Subscription status for ${regTable}:`, status);
       });
-    
+
     return () => { client.removeChannel(channel); };
   }, []);
 
