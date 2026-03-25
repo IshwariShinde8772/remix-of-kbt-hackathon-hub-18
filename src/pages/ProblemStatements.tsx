@@ -66,9 +66,9 @@ const LOCAL_RESOURCES: Record<string, { label: string; url: string }[]> = {
   // "Temperature distribution of composite wall using CFD": [
   //   { label: "Pentas Insulation (Temperature)", url: "/resources/pentas/Pentas Insulation (Temperature).pdf" },
   // ],
-  "Real -time  Payment Management,Inventory management and respective Invoice generation customised for construction management": [
-    { label: "Samarth Developers Resource", url: "/resources/samarth/Samarth developers.pdf" },
-  ],
+  // "Real -time  Payment Management,Inventory management and respective Invoice generation customised for construction management": [
+  //   { label: "Samarth Developers Resource", url: "/resources/samarth/Samarth developers.pdf" },
+  // ],
 };
 
 const ITEMS_PER_PAGE = 10;
