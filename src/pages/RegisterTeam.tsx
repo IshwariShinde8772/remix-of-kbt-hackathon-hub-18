@@ -61,7 +61,7 @@ const RegisterTeam = () => {
   const [leaderPhone, setLeaderPhone] = useState("");
 
   // Step 2: Members
-  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [members, setMembers] = useState<TeamMember[]>([{ name: "", email: "", contact: "" }]);
 
   // Step 3: Problem Selection
   const [selectedDomain, setSelectedDomain] = useState("");
@@ -110,7 +110,11 @@ const RegisterTeam = () => {
   };
 
   const removeMember = (index: number) => {
-    setMembers(members.filter((_, i) => i !== index));
+    if (members.length > 1) {
+      setMembers(members.filter((_, i) => i !== index));
+    } else {
+      toast.error("At least one team member is required (minimum 2 students per team).");
+    }
   };
 
   const updateMember = (index: number, field: keyof TeamMember, value: string) => {
@@ -139,6 +143,7 @@ const RegisterTeam = () => {
       return true;
     }
     if (step === 2) {
+      if (members.length === 0) return showError("At least one team member is required");
       for (let i = 0; i < members.length; i++) {
         if (!members[i].name.trim()) return showError(`Member ${i + 1} name is required`);
         if (!members[i].email.trim() || !/\S+@\S+\.\S+/.test(members[i].email.trim())) return showError(`Valid email required for member ${i + 1}`);
@@ -397,8 +402,8 @@ const RegisterTeam = () => {
                   <>
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold">Team Members</h3>
-                        <p className="text-sm text-muted-foreground">Add up to 4 members (excluding leader)</p>
+                        <h3 className="font-semibold">Team Members *</h3>
+                        <p className="text-sm text-muted-foreground mr-2">Add 1 to 4 members (Total team size: 2-5 students)</p>
                       </div>
                       <Badge variant="outline" className="text-primary border-primary">
                         {members.length} / 4 added
@@ -409,7 +414,7 @@ const RegisterTeam = () => {
                       <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
                         <Users className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
                         <p className="text-muted-foreground font-medium">No members added yet.</p>
-                        <p className="text-sm text-muted-foreground">You can participate solo or add up to 4 members.</p>
+                        <p className="text-sm text-muted-foreground">Minimum 1 member is required (Total 2 students).</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -423,7 +428,7 @@ const RegisterTeam = () => {
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
-                            <p className="text-sm font-semibold mb-3">Member {index + 1}</p>
+                            <p className="text-sm font-semibold mb-3">Member {index + 1} {index === 0 ? "*" : ""}</p>
                             <div className="grid md:grid-cols-3 gap-3">
                               <Input placeholder="Full name" value={member.name} onChange={(e) => updateMember(index, "name", e.target.value)} />
                               <Input placeholder="Email" type="email" value={member.email} onChange={(e) => updateMember(index, "email", e.target.value)} />
