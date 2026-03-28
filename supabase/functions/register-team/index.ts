@@ -31,8 +31,12 @@ serve(async (req) => {
       throw new Error("Missing Supabase credentials");
     }
 
-    // Initialize database client (using External as primary)
-    const db = createClient(DB_EXTERNAL, externalKey);
+    // Initialize database client (prioritizing environment variables)
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || DB_EXTERNAL;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || externalKey;
+
+    console.log(`🌐 Supabase URL: ${supabaseUrl}`);
+    const db = createClient(supabaseUrl, supabaseKey);
 
     // Lovable uses: registered_teams, External uses: team_registrations
     const tablePrefix = "team_"; // External table naming
@@ -114,15 +118,21 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════
     // STEP 3: Check for duplicate registration
     // ═══════════════════════════════════════════════════════════════
-    const { data: existing } = await db
+    console.log(`🔍 Checking for duplicate registration: ${college_name} / ${data.institute_number}`);
+    const { data: existing, error: dupError } = await db
       .from(table)
       .select(idColumn)
       .eq("institute_number", data.institute_number?.trim() || "")
       .ilike("college_name", college_name)
       .limit(1);
 
+    if (dupError) {
+      console.error(`❌ Duplicate check error: ${dupError.message}`);
+    }
+
     if (existing && existing.length > 0) {
       const existingId = (existing[0] as any)[idColumn];
+      console.log(`⚠️ Team already registered with ID: ${existingId}`);
       return new Response(
         JSON.stringify({ error: `This team is already registered with ID: ${existingId}` }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -134,7 +144,7 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════
     let generatedId = `KBT-0001`;
 
-    // Query for highest existing team_id
+    console.log(`🔍 Querying highest existing team ID...`);
     const { data: existingIds, error: idError } = await db
       .from(table)
       .select(idColumn)
@@ -143,6 +153,7 @@ serve(async (req) => {
 
     if (!idError && existingIds && existingIds.length > 0) {
       const highestId = (existingIds[0] as any)[idColumn];
+      console.log(`📊 Found highest ID: ${highestId}`);
       // Extract number from KBT-XXXX format
       const match = highestId?.match(/KBT-(\d+)/);
       if (match) {
@@ -162,13 +173,6 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════
     const membersArray = data.members || [];
     
-    // Ensure company_name column exists
-    try {
-      await db.rpc("execute_sql", { sql_query: `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS company_name TEXT;` });
-    } catch (e) {
-      console.warn("⚠️ Could not add company_name column via RPC, it might already exist or RPC is missing");
-    }
-
     // Build members JSON for the members JSONB column
     const membersJson = membersArray.map((member: any) => ({
       name: (member.name || "").trim(),
@@ -203,7 +207,7 @@ serve(async (req) => {
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 5: Save to database (with retry logic for duplicate IDs)
+    // STEP 6: Save to database (with retry logic for duplicate IDs)
     // ═══════════════════════════════════════════════════════════════
     let finalTeamId = generatedId;
     let insertAttempt = 0;
@@ -217,7 +221,6 @@ serve(async (req) => {
 
       console.log(`📍 Attempting insert #${insertAttempt} with team_id: ${finalTeamId}`);
       console.log(`📦 Table: ${table}`);
-      console.log(`📦 Number of fields: ${Object.keys(registrationData).length}`);
 
       // Insert to database
       const { data: insertData, error: err } = await db
@@ -230,7 +233,6 @@ serve(async (req) => {
         // Success!
         dbResult = insertData;
         console.log(`✅ Successfully inserted with team_id: ${finalTeamId}`);
-        console.log(`✅ Inserted data:`, JSON.stringify(insertData));
         break;
       } else if (err.code === "23505" && insertAttempt < 3) {
         // Duplicate key - try next ID
@@ -246,10 +248,7 @@ serve(async (req) => {
 
       // Other error - don't retry, throw immediately
       console.error(`❌ Insert failed (attempt ${insertAttempt}): ${err.message}`);
-      console.error(`❌ Error code: ${err.code}`);
-      console.error(`❌ Error hint: ${err.hint}`);
-      console.error(`❌ Full error details:`);
-      console.error(JSON.stringify(err, null, 2));
+      console.error(`❌ Full error details: ${JSON.stringify(err)}`);
       throw new Error(`Database insert error: ${err.message} (Code: ${err.code})`);
     }
 
