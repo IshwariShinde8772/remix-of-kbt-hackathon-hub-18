@@ -118,11 +118,11 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════
     // STEP 3: Check for duplicate registration
     // ═══════════════════════════════════════════════════════════════
-    console.log(`🔍 Checking for duplicate registration: ${college_name} / ${data.institute_number}`);
+    console.log(`🔍 Checking for duplicate registration: ${leader_email} / ${college_name}`);
     const { data: existing, error: dupError } = await db
       .from(table)
       .select(idColumn)
-      .eq("institute_number", data.institute_number?.trim() || "")
+      .ilike("leader_email", leader_email.trim())
       .ilike("college_name", college_name)
       .limit(1);
 
