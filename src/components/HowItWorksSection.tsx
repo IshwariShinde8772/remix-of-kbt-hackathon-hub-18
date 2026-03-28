@@ -5,7 +5,7 @@ const steps = [
   { number: 2, title: "Screening & Shortlisting", description: "Problem statements are checked for clarity, completeness, and required structure.", date: "28 FEB 2026", done: true },
   { number: 3, title: "Intimation to Industry", description: "Shortlisted problem statement details are communicated to participating industries.", date: "5 MAR 2026", done: true },
   { number: 4, title: "Open to Students", description: "KBT Avinyathon 2026 opens for student participation with all selected problem statements. Students can also submit their innovative solutions — this panel is now open for students!", date: "10 MAR 2026" },
-  { number: 5, title: "Last Date of Registration", description: "Final deadline for student teams to register for the hackathon.", date: "28 MAR 2026" },
+  { number: 5, title: "Last Date of Registration", description: "Final deadline for student teams to register for the hackathon.", date: "5 APR 2026" },
   { number: 6, title: "Solution Submission", description: "Student teams develop and submit their innovative solutions for the challenges.", date: "9 APR 2026" },
   { number: 7, title: "Scrutiny of Solutions", description: "Expert panel screens and evaluates the best solutions from all submissions.", date: "11 APR 2026" },
   { number: 8, title: "Final Evaluation", description: "Shortlisted solutions are presented to industry experts for final evaluation.", date: "18 APR 2026" },
