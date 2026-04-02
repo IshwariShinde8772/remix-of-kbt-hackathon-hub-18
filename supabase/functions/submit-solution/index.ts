@@ -46,19 +46,48 @@ serve(async (req) => {
       }
 
       console.log(`🔍 Validating team: ${team_id}`);
-      const { data: team, error: findError } = await db
+      
+      // First find team by ID only to give better feedback
+      const { data: teams, error: findError } = await db
         .from(regTable)
-        .select(`${teamIdCol}, id, team_name, leader_name, college_name, leader_email, problem_statement_title, problem_description, domain, company_name, mentor_name`)
-        .eq(teamIdCol, team_id.trim())
-        .ilike("college_name", `%${college_name?.trim() || ""}%`)
-        .eq("institute_number", institute_number?.trim() || "")
-        .single();
+        .select(`${teamIdCol}, id, team_name, leader_name, college_name, leader_email, problem_statement_title, problem_description, domain, company_name, mentor_name, institute_number`)
+        .eq(teamIdCol, team_id.trim());
 
-      if (findError || !team) {
-        console.error(`❌ Validation failed: ${findError?.message || "Team not found"}`);
+      if (findError) {
+        console.error(`❌ DB error during validation: ${findError.message}`);
         return new Response(
-          JSON.stringify({ error: "Invalid Team ID or college details" }),
+          JSON.stringify({ error: "Server error during validation" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!teams || teams.length === 0) {
+        console.warn(`⚠️ Team ID not found: ${team_id}`);
+        return new Response(
+          JSON.stringify({ error: `Team ID "${team_id}" not found. Please check and try again.` }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const team = teams[0];
+      const dbCollege = (team.college_name || "").toLowerCase().trim();
+      const inputCollege = (college_name || "").toLowerCase().trim();
+      const dbInst = (team.institute_number || "").toString().trim();
+      const inputInst = (institute_number || "").toString().trim();
+
+      // Flexible college name matching (must contain or be contained)
+      const collegeMatches = dbCollege.includes(inputCollege) || inputCollege.includes(dbCollege);
+      const instMatches = dbInst === inputInst;
+
+      if (!collegeMatches || !instMatches) {
+        console.error(`❌ Detail mismatch for ${team_id}: College Match=${collegeMatches}, Inst Match=${instMatches}`);
+        let errorMsg = "Verification failed. ";
+        if (!collegeMatches) errorMsg += "College name does not match our records. ";
+        if (!instMatches) errorMsg += "Institute ID does not match our records.";
+        
+        return new Response(
+          JSON.stringify({ error: errorMsg }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -95,18 +124,34 @@ serve(async (req) => {
 
     // Step 1: Verify team
     console.log(`🔍 Verifying team ${team_id} for final submission...`);
-    const { data: teamData, error: teamError } = await db
+    const { data: teamsData, error: teamError } = await db
       .from(regTable)
-      .select(`id, team_name, leader_email, company_name, mentor_name`)
-      .eq(teamIdCol, team_id)
-      .ilike("college_name", `%${college_name || ""}%`)
-      .eq("institute_number", institute_number || "")
-      .single();
+      .select(`id, team_name, leader_email, company_name, mentor_name, college_name, institute_number`)
+      .eq(teamIdCol, team_id);
 
-    if (teamError || !teamData) {
-      console.error(`❌ Team verification failed: ${teamError?.message}`);
+    if (teamError) {
+      console.error(`❌ DB error during verification: ${teamError.message}`);
+      throw new Error("Server error during team verification");
+    }
+
+    if (!teamsData || teamsData.length === 0) {
+      console.error(`❌ Team verification failed: Team ID ${team_id} not found`);
       return new Response(
-        JSON.stringify({ error: "Team verification failed. Invalid credentials." }),
+        JSON.stringify({ error: "Team record not found." }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const teamData = teamsData[0];
+    const dbCollegeSub = (teamData.college_name || "").toLowerCase().trim();
+    const inputCollegeSub = (college_name || "").toLowerCase().trim();
+    const dbInstSub = (teamData.institute_number || "").toString().trim();
+    const inputInstSub = (institute_number || "").toString().trim();
+
+    if (!(dbCollegeSub.includes(inputCollegeSub) || inputCollegeSub.includes(dbCollegeSub)) || dbInstSub !== inputInstSub) {
+      console.error(`❌ Verification details mismatch at submission time for ${team_id}`);
+      return new Response(
+        JSON.stringify({ error: "Verification failed. Details do not match our records." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -226,6 +271,7 @@ serve(async (req) => {
         await transporter.sendMail({
           from: `"KBT Avinyathon 2026" <${gmailUser}>`,
           to: teamData.leader_email,
+          cc: "kbtavinyathon@gmail.com, deshmukh.tejaswini@kbtcoe.org",
           subject: `✅ Solution Submitted - Team ID: ${team_id}`,
           html: emailHtml,
         });
