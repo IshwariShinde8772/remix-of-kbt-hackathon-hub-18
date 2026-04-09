@@ -46,6 +46,8 @@ const SubmitSolution = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submittedTeamId, setSubmittedTeamId] = useState("");
+  const [submittedCollege, setSubmittedCollege] = useState("");
+  const [submittedInstituteId, setSubmittedInstituteId] = useState("");
 
   // Scroll to top whenever submitted changes to true
   useEffect(() => {
@@ -166,6 +168,8 @@ const SubmitSolution = () => {
       }
 
       setSubmittedTeamId(teamIdInput.trim());
+      setSubmittedCollege(collegeName.trim());
+      setSubmittedInstituteId(instituteNumber.trim());
       setSubmitted(true);
       toast.success("Solution submitted successfully!");
     } catch (error: any) {
@@ -202,16 +206,36 @@ const SubmitSolution = () => {
                   </div>
                   <div className="space-y-2">
                     <h2 className="text-2xl font-heading font-bold text-foreground">
-                      ≡ƒÄë Solution Submitted Successfully!
+                      🎉 Solution Submitted Successfully!
                     </h2>
                     <p className="text-muted-foreground">
                       Your solution has been received. Our team will review it shortly.
                     </p>
                   </div>
-                  <div className="bg-muted/50 rounded-xl p-4 text-sm space-y-1 text-left max-w-sm mx-auto">
-                    <p className="text-muted-foreground">Team ID</p>
-                    <p className="font-bold font-mono text-lg text-primary">{submittedTeamId}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Please keep this ID for future reference.</p>
+
+                  {/* Compact registration details notification */}
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-left max-w-sm mx-auto space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700 mb-2">Submission Details</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div>
+                        <p className="text-green-600 text-xs">Team ID</p>
+                        <p className="font-bold font-mono text-green-900">{submittedTeamId}</p>
+                      </div>
+                      <div>
+                        <p className="text-green-600 text-xs">Institute ID</p>
+                        <p className="font-bold font-mono text-green-900">{submittedInstituteId}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-green-600 text-xs">College Name</p>
+                        <p className="font-semibold text-green-900 text-sm">{submittedCollege}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 pt-2 border-t border-green-200 mt-1">
+                      <span className="text-green-500 text-base mt-0.5">✉️</span>
+                      <p className="text-xs text-green-700">
+                        A confirmation email has been sent to the team leader's registered email address.
+                      </p>
+                    </div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Button
@@ -245,6 +269,16 @@ const SubmitSolution = () => {
                     <p className="text-sm text-muted-foreground">
                       Enter your Team ID, College Name, and Institute Number.
                     </p>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 shadow-sm animate-pulse-subtle">
+                      <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="text-amber-900 font-semibold text-sm">Action Required</p>
+                        <p className="text-amber-800 text-sm leading-relaxed">
+                          Please fill information as per the email sent to you. All details should be similar to the email sent as confirmation; especially <strong>College Name</strong> and <strong>Institute ID</strong> should be exactly the same.
+                        </p>
+                      </div>
+                    </div>
                     <div className="grid md:grid-cols-3 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">Team ID *</Label>

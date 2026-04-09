@@ -267,6 +267,19 @@ const SubmitSolution = () => {
                       <h3 className="text-lg font-heading font-bold uppercase tracking-tight">Step 1: Verify Identity</h3>
                     </div>
 
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-4 shadow-sm animate-pulse">
+                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200">
+                        <AlertCircle className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-amber-900 font-bold uppercase tracking-tight text-sm">Action Required</p>
+                        <p className="text-amber-800 text-sm leading-relaxed">
+                          Please fill in the information <strong>exactly as per the confirmation email</strong> sent to you.
+                          All details should be identical to the email, especially your <strong>College Name</strong> and <strong>Institute ID</strong>.
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="grid md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Team ID *</Label>
