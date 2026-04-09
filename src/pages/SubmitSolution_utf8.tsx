@@ -260,6 +260,19 @@ const SubmitSolution = () => {
                 </div>
 
                 <div className="p-6 md:p-8 space-y-6">
+                  {/* Global Submission Notice */}
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex gap-4 items-center">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Layout className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-primary text-sm uppercase">Mandatory Submission Format</h4>
+                      <p className="text-muted-foreground text-xs leading-relaxed">
+                        Submit your <strong>PPT (as PDF)</strong> and a <strong>YouTube video</strong> explanation including your <strong>prototype</strong> demo.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Step 1: Verify Team */}
                   <div className="space-y-4">
                     <h3 className="font-semibold flex items-center gap-2">
@@ -344,6 +357,16 @@ const SubmitSolution = () => {
                         <Upload className="w-5 h-5 text-primary" />
                         Step 2: Submit Your Solution
                       </h3>
+
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 shadow-sm">
+                        <FileText className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-blue-900 font-semibold text-sm">Submission Requirements</p>
+                          <p className="text-blue-800 text-sm leading-relaxed">
+                            Please ensure you submit your <strong>PPT (in PDF format)</strong> and a <strong>YouTube video</strong> containing a detailed explanation of your solution and <strong>prototype</strong>.
+                          </p>
+                        </div>
+                      </div>
 
                       <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                         <div>

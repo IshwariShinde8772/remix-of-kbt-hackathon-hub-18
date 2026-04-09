@@ -260,6 +260,19 @@ const SubmitSolution = () => {
                 </div>
 
                 <div className="p-6 md:p-8 space-y-10">
+                  {/* Global Submission Notice */}
+                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                      <Layout className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-heading font-bold text-primary uppercase tracking-tight text-sm">Mandatory Submission Format</h4>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        For a complete solution submission, you <strong>must</strong> provide your <strong>PPT (as PDF)</strong> along with a <strong>YouTube video</strong> covering your solution explanation and <strong>prototype</strong> demo.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Step 1 Section: Verification */}
                   <div className="space-y-6">
                     <div className="flex items-center gap-3 text-primary">
@@ -365,6 +378,18 @@ const SubmitSolution = () => {
                       <div className="flex items-center gap-3 text-primary">
                         <Upload className="w-6 h-6" />
                         <h3 className="text-lg font-heading font-bold uppercase tracking-tight">Step 2: Solution Materials</h3>
+                      </div>
+
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-4 shadow-sm">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200">
+                          <FileText className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-blue-900 font-bold uppercase tracking-tight text-sm">Submission Requirements</p>
+                          <p className="text-blue-800 text-sm leading-relaxed">
+                            Please ensure you submit your <strong>PPT (in PDF format)</strong> and a <strong>YouTube video</strong> containing a detailed explanation of your solution and <strong>prototype</strong>.
+                          </p>
+                        </div>
                       </div>
 
                       {/* Problem Info Card - Styled similar to Problem Selection details in RegisterTeam */}
