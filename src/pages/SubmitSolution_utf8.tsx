@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Upload, Send, FileText, Youtube, CheckCircle2, AlertCircle, ArrowRight, X } from "lucide-react";
+import { Search, Upload, Send, FileText, Youtube, CheckCircle2, AlertCircle, ArrowRight, X, Layout, CalendarClock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 
@@ -269,6 +269,9 @@ const SubmitSolution = () => {
                       <h4 className="font-bold text-primary text-sm uppercase">Mandatory Submission Format</h4>
                       <p className="text-muted-foreground text-xs leading-relaxed">
                         Submit your <strong>PPT (as PDF)</strong> and a <strong>YouTube video</strong> explanation including your <strong>prototype</strong> demo.
+                      </p>
+                      <p className="text-red-600 font-bold text-[10px] mt-1 uppercase flex items-center gap-1">
+                        <CalendarClock className="w-3 h-3" /> Deadline: 10 April 2026, 10:00 AM
                       </p>
                     </div>
                   </div>

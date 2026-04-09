@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Search, Upload, Send, FileText, Youtube, CheckCircle2, AlertCircle, ArrowRight, X, Layout, GraduationCap, Building2, Shield } from "lucide-react";
+import { Search, Upload, Send, FileText, Youtube, CheckCircle2, AlertCircle, ArrowRight, X, Layout, GraduationCap, Building2, Shield, CalendarClock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const SubmitSolution = () => {
@@ -270,6 +270,12 @@ const SubmitSolution = () => {
                       <p className="text-muted-foreground text-sm leading-relaxed">
                         For a complete solution submission, you <strong>must</strong> provide your <strong>PPT (as PDF)</strong> along with a <strong>YouTube video</strong> covering your solution explanation and <strong>prototype</strong> demo.
                       </p>
+                      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/10">
+                        <CalendarClock className="w-4 h-4 text-red-500" />
+                        <p className="text-red-600 font-bold text-xs uppercase tracking-wider">
+                          Final Deadline: 10 April 2026, 10:00 AM
+                        </p>
+                      </div>
                     </div>
                   </div>
 

@@ -11,7 +11,7 @@ const MarqueeTextClosed = () => (
 const MarqueeTextDeadline = () => (
   <span className="text-red-900 font-semibold text-sm md:text-base flex items-center gap-2 mx-8 shrink-0">
     <CalendarClock className="w-5 h-5 text-red-600 shrink-0" />
-    ⏰ Solution Submission Last Date: <span className="font-black underline underline-offset-2 ml-1">9 April 2026</span> — Submit your solution before the deadline!
+    ⏰ Solution Submission Deadline: <span className="font-black underline underline-offset-2 ml-1">10 April 2026, 10:00 AM</span> — Final call for submissions!
   </span>
 );
 
