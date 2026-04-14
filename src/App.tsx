@@ -12,6 +12,7 @@ import Resources from "./pages/Resources";
 import ContactUs from "./pages/ContactUs";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
+import Result from "./pages/Result";
 
 const queryClient = new QueryClient();
 
@@ -30,7 +31,7 @@ const App = () => (
           <Route path="/submit-solution" element={<SubmitSolution />} />
           <Route path="/submit" element={<SubmitProblem />} />
           <Route path="/contact" element={<ContactUs />} />
-          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/result" element={<Result />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

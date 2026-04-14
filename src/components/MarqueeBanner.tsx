@@ -4,7 +4,7 @@ import { ClipboardList } from "lucide-react";
 const MarqueeText = () => (
   <span className="text-amber-900 font-semibold text-sm md:text-base flex items-center gap-2 mx-8 shrink-0">
     <ClipboardList className="w-5 h-5 text-amber-600 shrink-0" />
-    📋 Scrutiny-selected teams list — Visible till <strong>14th April 2026</strong>.
+    📋 Final list of scrutinized selected teams for further procedure is here: <a href="/result" className="underline text-blue-700 font-bold ml-1 hover:text-blue-900">Click here</a>
   </span>
 );
 
